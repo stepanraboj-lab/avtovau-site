@@ -1,0 +1,48 @@
+name: Deploy AVTOVAU website
+
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Extract website
+        run: |
+          mkdir -p public
+          unzip -o site.zip -d public
+          INDEX=$(find public -type f -name index.html -print -quit)
+          test -n "$INDEX"
+          mkdir -p publish
+          cp -a "$(dirname "$INDEX")/." publish/
+          echo "xn--80aaf0agq.xn--p1ai" > publish/CNAME
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: publish
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
