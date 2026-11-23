@@ -6,6 +6,7 @@ on:
   workflow_dispatch:
 
 permissions:
+  actions: read
   contents: read
   pages: write
   id-token: write
@@ -27,19 +28,17 @@ jobs:
 
       - name: Extract website
         run: |
-          mkdir -p public
-          unzip -o site.zip -d public
-          INDEX=$(find public -type f -name index.html -print -quit)
-          test -n "$INDEX"
           mkdir -p publish
-          cp -a "$(dirname "$INDEX")/." publish/
-          echo "xn--80aaf0agq.xn--p1ai" > publish/CNAME
+          unzip -oq site.zip -d publish
+          test -f publish/index.html
+          test -f publish/CNAME
+          test -f publish/cars/vw-polo-2013/index.html
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
 
       - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v4
         with:
           path: publish
 
