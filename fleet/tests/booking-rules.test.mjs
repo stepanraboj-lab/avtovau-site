@@ -7,20 +7,33 @@ const {vehicles} = JSON.parse(readFileSync(new URL('../../fleet.json', import.me
 const from = '2026-12-10';
 const today = '2026-11-24';
 
-test('все тарифы из fleet.json рассчитываются только для указанного числа суток', () => {
+test('все 18 порогов, соседние сроки и аренда дольше 30 суток', () => {
   for (const vehicle of vehicles) {
-    for (const tariff of vehicle.tariffs) {
-      const end = new Date(Date.parse(from) + tariff.days * 86400000).toISOString().slice(0, 10);
-      assert.deepEqual(quote(from, end, vehicle, today), {
-        state: 'priced', days: tariff.days, total: tariff.daily_rub * tariff.days
-      });
-    }
-    const state = vehicle.minimum_days > 2 ? 'minimum' : 'unknown';
-    assert.deepEqual(quote(from, '2026-12-12', vehicle, today), {state, days: 2});
-    if (state === 'minimum') {
-      assert.doesNotMatch(message(vehicle, from, '2026-12-12', {state, days: 2}), /10\.12\.2026/);
+    const ordered = [...vehicle.tariffs].sort((a, b) => a.days - b.days);
+    const lengths = new Set([31, 45, ...ordered.flatMap(rate => [rate.days - 1, rate.days, rate.days + 1])]);
+    for (const days of lengths) {
+      const end = new Date(Date.parse(from) + days * 86400000).toISOString().slice(0, 10);
+      const outcome = quote(from, end, vehicle, today);
+      if (!days) {
+        assert.equal(outcome.state, 'order');
+      } else if (days < vehicle.minimum_days) {
+        assert.deepEqual(outcome, {state: 'minimum', days});
+        assert.doesNotMatch(message(vehicle, from, end, outcome), /10\.12\.2026/);
+      } else {
+        const daily = ordered.filter(rate => rate.days <= days).at(-1).daily_rub;
+        const rental = daily * days, deposit = vehicle.deposit.rub;
+        assert.deepEqual(outcome, {state: 'priced', days, daily, rental, deposit, total: rental + deposit});
+      }
     }
   }
+});
+
+test('контрольный расчёт Logan на 5 суток и стоимость в сообщении', () => {
+  const logan = vehicles.find(v => v.id === 'renault-logan');
+  const end = '2026-12-15';
+  const result = quote(from, end, logan, today);
+  assert.deepEqual(result, {state:'priced', days:5, daily:2200, rental:11000, deposit:7000, total:18000});
+  assert.match(message(logan, from, end, result), /11\s000 ₽ без возвратного депозита/);
 });
 
 test('проверка отсутствующих, недействительных и прошедших дат', () => {

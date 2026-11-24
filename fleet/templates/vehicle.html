@@ -12,9 +12,9 @@
       <div class="booking-actions">
         <button type="button" class="booking-actions__control booking-actions__control--primary booking-trigger" aria-haspopup="dialog" aria-controls="booking-dialog">Забронировать</button>
         <a class="booking-actions__control booking-actions__control--secondary" href="#tariffs">Посмотреть тарифы</a>
+        <button id="vehicle-share" class="booking-actions__control booking-actions__control--secondary" type="button" hidden>$share_icon Поделиться</button>
       </div>
-      <div class="vehicle-share">
-        <button id="vehicle-share" class="header-contact" type="button" hidden>Поделиться</button>
+      <div class="vehicle-share-feedback">
         <p id="share-status" role="status"></p>
         <input id="share-manual" aria-label="Каноническая ссылка" readonly hidden>
       </div>
@@ -33,7 +33,7 @@
     <div class="table-frame">
       <table class="tariff-table">
         <caption class="visually-hidden">Тарифы на аренду $name</caption>
-        <thead><tr><th scope="col">Срок</th><th scope="col">За сутки</th><th scope="col">За период</th></tr></thead>
+        <thead><tr><th scope="col">Срок аренды</th><th scope="col">За сутки</th></tr></thead>
         <tbody>$tariffs</tbody>
       </table>
     </div>

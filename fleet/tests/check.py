@@ -4,13 +4,14 @@ from copy import deepcopy
 from html.parser import HTMLParser
 import json
 from pathlib import Path
+import re
 from urllib.parse import unquote, urlsplit
 from xml.etree import ElementTree as ET
 from zipfile import ZipFile
 import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from build import ROOT, build, validate
+from build import ROOT, build, days, rubles, validate
 
 
 class Page(HTMLParser):
@@ -68,6 +69,19 @@ with ZipFile(ROOT / "site.zip") as archive:
         assert order == sorted(order)
         assert f"Перепробег — {overage} ₽/км." in terms and "Территория эксплуатации — до ЦКАД." in terms
         assert f'Возвратный депозит — {deposit:,}'.replace(",", " ") in terms
+        table = content.split('id="tariffs"', 1)[1].split("</section>", 1)[0]
+        rows = re.findall(r"<tr><td>([^<]+)</td><td>([^<]+)</td></tr>", table)
+        ordered = sorted(vehicle["tariffs"], key=lambda rate: rate["days"])
+        assert len(rows) == len(ordered)
+        for index, (label, price) in enumerate(rows):
+            rate = ordered[index]
+            lower = rate["days"]
+            if index == len(ordered) - 1:
+                assert label == f"От {days(lower)}"
+            else:
+                upper = ordered[index + 1]["days"] - 1
+                assert label == (days(lower) if lower == upper else f"{lower}–{days(upper)}")
+            assert price == f'{rubles(rate["daily_rub"])} ₽'
     assert total_tariffs == 18
     excluded = ("внж", "рвп", "осагo без огранич", "осаго без огранич", "незамедлительно сообщ",
                 "сразу связаться с владельцем", "25 ₽ за килом", "25 ₽/км")
