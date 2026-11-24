@@ -75,6 +75,10 @@ def photo(image, css="", lazy=False):
     return f'<img class="{css}" src="/{escape(image["src"])}" alt="{escape(image["alt"])}"{loading}>'
 
 
+def catalog_photo(vehicle):
+    return vehicle.get("catalog_image", vehicle["photo"])
+
+
 def gallery_link(image, index, hero=False):
     css = ' class="hero-photo-link"' if hero else ""
     return (
@@ -236,7 +240,7 @@ def pages(data):
     vehicles = data["vehicles"]
     hero = data["home_photo"]
     cards = "".join(render(
-        "card", path=escape(v["path"]), photo=photo(v["photo"], lazy=True), status=status(v),
+        "card", path=escape(v["path"]), photo=photo(catalog_photo(v), lazy=True), status=status(v),
         name=escape(v["name"]), features=features(v), monthly=rubles(monthly(v)).replace(" ", "&nbsp;"),
         arrow=icon("arrow", "details-arrow"),
     ) for v in vehicles)
@@ -292,7 +296,7 @@ def validate(data, archive):
             raise ValueError(f"{slug}: проверьте периоды тарифов и минимальный срок")
         if any(type(r["daily_rub"]) is not int or r["daily_rub"] <= 0 or "{total}" not in r["total_format"] for r in v["tariffs"]):
             raise ValueError(f"{slug}: стоимость должна быть целым положительным числом, а итог — содержать {{total}}")
-    images = [data["home_photo"], *(image for v in vehicles for image in [v["photo"], *v["gallery"]])]
+    images = [data["home_photo"], *(image for v in vehicles for image in [v["photo"], catalog_photo(v), *v["gallery"]])]
     for image in images:
         if not image["src"].startswith("assets/") or image["src"] not in archive.namelist() or not image["alt"].strip():
             raise ValueError(f'Проверьте фото и его alt: {image["src"]}')
