@@ -43,6 +43,7 @@ ICONS = {
     "route": "M5 4h14v16H5zM8 16l3-4 3 1 2-5",
     "wallet": "M3 6h18v13H3zM21 10h-6v5h6m-4-2.5h.01",
     "camera": "M3 7h5l2-3h4l2 3h5v13H3zM12 17a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z",
+    "share": "M12 15V3m-4 4 4-4 4 4M7 10H4v11h16V10h-3",
 }
 
 
@@ -229,13 +230,15 @@ def vehicle_page(vehicle, data):
             note = vehicle.get("equipment_notes", {}).get(key)
             equipment.append(f"<li>{item}{' · ' + escape(note) if note else ''}</li>")
     tariffs = []
-    for rate in vehicle["tariffs"]:
-        note = f'<small>{escape(rate["note"])}</small>' if "note" in rate else ""
-        total = rate["total_format"].format(total=rubles(rate["daily_rub"] * rate["days"]))
-        tariffs.append(
-            f'<tr><td>{escape(rate["label"])}{note}</td><td>{rubles(rate["daily_rub"])} ₽</td>'
-            f'<td>{escape(total)}</td></tr>'
-        )
+    ordered = sorted(vehicle["tariffs"], key=lambda rate: rate["days"])
+    for i, rate in enumerate(ordered):
+        start = rate["days"]
+        if i == len(ordered) - 1:
+            period = f"От {days(start)}"
+        else:
+            end = ordered[i + 1]["days"] - 1
+            period = days(start) if start == end else f'{start}–{days(end)}'
+        tariffs.append(f'<tr><td>{escape(period)}</td><td>{rubles(rate["daily_rub"])} ₽</td></tr>')
     hero = vehicle["photo"]
     photos = list({image["src"]: image for image in vehicle["gallery"]}.values())
     if not any(image["src"] == hero["src"] for image in photos):
@@ -247,6 +250,7 @@ def vehicle_page(vehicle, data):
         short_description=escape(vehicle["short_description"]),
         equipment='<ul class="equipment-list">' + "".join(equipment) + "</ul>" if equipment else "",
         hero_photo=gallery_link(hero, hero_index, hero=True), rental_parameters=rental_parameters(vehicle),
+        share_icon=icon("share"),
         terms=rental_conditions(data["rental_terms"], vehicle),
         common_equipment=inherited_equipment(data), tariff_note=escape(vehicle["tariff_note"]),
         tariffs="".join(tariffs), gallery=gallery,
@@ -263,6 +267,7 @@ def faq(vehicles, terms):
         ("Какие требования к водителю?", " ".join(drivers)),
         ("Какой минимальный срок аренды?", minimum + "."),
         ("Какой залог?", deposits + ". Условия возврата смотрите в карточке выбранной машины."),
+        ("Как рассчитывается стоимость аренды?", "Выберите даты. Выбираем наибольший тарифный порог, который не превышает срок аренды, и применяем его ставку ко всем суткам. Возвратный депозит показывается отдельно."),
         ("Какой пробег включён в сутки?", mileage + "."),
         ("Можно ли запросить даты для занятой машины?", "Да, напишите владельцу о будущих датах. Доступность и стоимость подтверждает владелец."),
     ]
@@ -293,7 +298,7 @@ def pages(data):
         v = vehicle
         page_settings = {"counterId": counter, "vehicle": None}
         if v:
-            page_settings["vehicle"] = {key: v[key] for key in ("id", "name", "year", "minimum_days")}
+            page_settings["vehicle"] = {key: v[key] for key in ("id", "name", "year", "minimum_days", "deposit")}
             page_settings["vehicle"]["tariffs"] = [
                 {key: rate[key] for key in ("days", "daily_rub")} for rate in v["tariffs"]
             ]
@@ -307,7 +312,7 @@ def pages(data):
             dialog_title=f'Связаться с {escape(company["name"])}',
             dialog_model=f'<p id="booking-model" class="booking-dialog__model" hidden>{escape(v["name"])}</p>' if v else "",
             dialog_label="booking-title", booking_dates=render(
-                "booking-dates", status=status(v), minimum=days(v["minimum_days"]), deposit=rubles(v["deposit"]["rub"])
+                "booking-dates", status=status(v), minimum=days(v["minimum_days"]), calendar=icon("year")
             ) if v else "",
             viewport_fit=",viewport-fit=cover" if v else "",
             photo_viewer=render("photo-viewer", model=escape(v["name"])) if v else "",
@@ -383,8 +388,8 @@ def validate(data, archive):
         if (not periods or any(type(p) is not int or p <= 0 for p in periods)
                 or min(periods) != v["minimum_days"] or 30 not in periods or len(set(periods)) != len(periods)):
             raise ValueError(f"{slug}: проверьте периоды тарифов и минимальный срок")
-        if any(type(r["daily_rub"]) is not int or r["daily_rub"] <= 0 or "{total}" not in r["total_format"] for r in v["tariffs"]):
-            raise ValueError(f"{slug}: стоимость должна быть целым положительным числом, а итог — содержать {{total}}")
+        if any(type(r["daily_rub"]) is not int or r["daily_rub"] <= 0 for r in v["tariffs"]):
+            raise ValueError(f"{slug}: стоимость должна быть целым положительным числом")
     images = [data["home_photo"], *(image for v in vehicles for image in [v["photo"], catalog_photo(v), *v["gallery"]])]
     if "home_banner" in data:
         images.append(data["home_banner"])

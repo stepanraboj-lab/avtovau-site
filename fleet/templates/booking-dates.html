@@ -1,10 +1,17 @@
 <div id="booking-dates" hidden>
   <p class="booking-state">$status</p>
-  <p class="booking-parameters">Минимальный срок — $minimum. Возвратный депозит — $deposit&nbsp;₽.</p>
+  <p class="booking-parameters">Минимальный срок — $minimum.</p>
   <div class="booking-date-grid">
-    <label>Дата начала <input type="date" id="booking-start" aria-describedby="booking-quote"></label>
-    <label>Дата окончания <input type="date" id="booking-end" aria-describedby="booking-quote"></label>
+    <label><span>Дата начала</span><span class="booking-date-field"><input type="date" id="booking-start" aria-describedby="booking-quote">$calendar</span></label>
+    <label><span>Дата окончания</span><span class="booking-date-field"><input type="date" id="booking-end" aria-describedby="booking-quote">$calendar</span></label>
   </div>
   <p id="booking-quote" aria-live="polite"></p>
+  <dl id="booking-breakdown" class="booking-breakdown" aria-label="Предварительный расчёт" hidden>
+    <div><dt>Срок аренды</dt><dd data-amount="days"></dd></div>
+    <div><dt>Тариф за сутки</dt><dd data-amount="daily"></dd></div>
+    <div><dt>Стоимость аренды</dt><dd data-amount="rental"></dd></div>
+    <div><dt>Возвратный депозит</dt><dd data-amount="deposit"></dd></div>
+    <div class="booking-breakdown__total"><dt>Итого с депозитом</dt><dd data-amount="total"></dd></div>
+  </dl>
   <p class="booking-dialog__description">Можно написать без дат или запросить будущие даты для занятой машины. Доступность и итоговую стоимость подтверждает владелец.</p>
 </div>

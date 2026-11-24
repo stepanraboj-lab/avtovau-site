@@ -1,6 +1,7 @@
 const day = 86_400_000;
 const dateLabel = new Intl.DateTimeFormat('ru-RU', {timeZone: 'UTC'});
 const durationLabel = new Intl.PluralRules('ru-RU');
+const money = new Intl.NumberFormat('ru-RU');
 
 function dateValue(value) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return NaN;
@@ -24,8 +25,17 @@ export function quote(start, end, vehicle, today = todayInMoscow()) {
   if (to <= from) return {state: 'order'};
   const days = (to - from) / day;
   if (days < vehicle.minimum_days) return {state: 'minimum', days};
-  const rate = vehicle.tariffs.find(item => item.days === days);
-  return rate ? {state: 'priced', days, total: days * rate.daily_rub} : {state: 'unknown', days};
+  const rate = vehicle.tariffs.reduce((best, item) => (
+    item.days <= days && (!best || item.days > best.days) ? item : best
+  ), null);
+  if (!rate) return {state: 'unknown', days};
+  const rental = days * rate.daily_rub;
+  const deposit = vehicle.deposit.rub;
+  return {state: 'priced', days, daily: rate.daily_rub, rental, deposit, total: rental + deposit};
+}
+
+export function rubles(amount) {
+  return `${money.format(amount)} ₽`;
 }
 
 export function rentalDays(days) {
@@ -37,7 +47,8 @@ export function message(vehicle, start = '', end = '', result = {}) {
   if (!vehicle) return 'Здравствуйте! Интересует аренда автомобиля. Подскажите, пожалуйста, какие машины сейчас доступны?';
   const validPeriod = result.state === 'priced' || result.state === 'unknown';
   const dates = validPeriod ? ` с ${dateLabel.format(dateValue(start))} по ${dateLabel.format(dateValue(end))}, на ${rentalDays(result.days)}` : '';
-  return `Здравствуйте! Хочу арендовать ${vehicle.name} ${vehicle.year} года${dates}. Подскажите, пожалуйста, доступен ли автомобиль?`;
+  const estimate = result.state === 'priced' ? ` Предварительная стоимость аренды — ${rubles(result.rental)} без возвратного депозита.` : '';
+  return `Здравствуйте! Хочу арендовать ${vehicle.name} ${vehicle.year} года${dates}.${estimate} Подскажите, пожалуйста, доступен ли автомобиль?`;
 }
 
 export function contactUrl(base, body) {

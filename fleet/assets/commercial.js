@@ -1,4 +1,4 @@
-import {contactUrl, message, quote, rentalDays, todayInMoscow} from './booking-rules.js';
+import {contactUrl, message, quote, rentalDays, rubles, todayInMoscow} from './booking-rules.js';
 
 const page = JSON.parse(document.querySelector('#page-settings').textContent);
 const vehicle = page.vehicle;
@@ -77,13 +77,14 @@ if (dialog && source) {
   const start = fields?.querySelector('#booking-start');
   const end = fields?.querySelector('#booking-end');
   const result = fields?.querySelector('#booking-quote');
+  const breakdown = fields?.querySelector('#booking-breakdown');
+  const amounts = breakdown?.querySelectorAll('[data-amount]');
   const contacts = source.cloneNode(true);
   contacts.className = 'contact-options';
   contacts.querySelector('.contact-options__title').remove();
   panel.append(contacts);
   const messengers = [...contacts.querySelectorAll('[data-contact="telegram"],[data-contact="whatsapp"]')];
   const originals = messengers.map(link => link.href);
-  const rubles = new Intl.NumberFormat('ru-RU');
   let opener;
   let booking = false;
   let outside = false;
@@ -97,9 +98,16 @@ if (dialog && source) {
       order: 'Дата окончания должна быть позже даты начала.',
       minimum: assessment.state === 'minimum' ? `Выбранный срок: ${rentalDays(assessment.days)}. Минимальный срок аренды — ${rentalDays(vehicle.minimum_days)}.` : '',
       unknown: assessment.days ? `${rentalDays(assessment.days)}. Уточните стоимость у владельца.` : '',
-      priced: assessment.days ? `${rentalDays(assessment.days)} · предварительно ${rubles.format(assessment.total)} ₽ за аренду.` : ''
+      priced: 'Предварительный расчёт'
     };
     if (result) result.textContent = notices[assessment.state];
+    if (breakdown) {
+      breakdown.hidden = assessment.state !== 'priced';
+      if (!breakdown.hidden) for (const amount of amounts) {
+        const key = amount.dataset.amount;
+        amount.textContent = key === 'days' ? rentalDays(assessment.days) : rubles(assessment[key]);
+      }
+    }
     if (booking) {
       start.setAttribute('aria-invalid', String(['invalid', 'past'].includes(assessment.state)));
       end.setAttribute('aria-invalid', String(['invalid', 'order', 'minimum'].includes(assessment.state)));

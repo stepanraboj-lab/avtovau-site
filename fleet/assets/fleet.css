@@ -71,7 +71,20 @@ h3 { font-size: 22px; margin-bottom: 12px; }
   border-radius: var(--radius);
   background: #29352f;
 }
-.hero-banner { object-fit: contain; }
+.hero-banner {
+  object-fit: contain;
+  background: transparent;
+  border-radius: 0;
+  --fade-x: linear-gradient(90deg, transparent, #000 7%, #000 93%, transparent);
+  --fade-y: linear-gradient(180deg, transparent, #000 9%, #000 91%, transparent);
+  -webkit-mask-image: var(--fade-x), var(--fade-y);
+  mask-image: var(--fade-x), var(--fade-y);
+  -webkit-mask-composite: source-in;
+  mask-composite: intersect;
+}
+@media (min-width: 900px) {
+  .intro .hero-grid { grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); }
+}
 .section { padding-block: clamp(25px, 4vw, 50px); }
 .catalog-grid {
   display: grid;
@@ -196,7 +209,26 @@ h3 { font-size: 22px; margin-bottom: 12px; }
 #booking-dates { margin-top: 12px; }
 .booking-state { margin-bottom: 10px; }
 .booking-date-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px; }
-.booking-date-grid label { min-width: 0; font-size: 13px; }
+.booking-date-grid label { display: grid; align-content: start; gap: 5px; min-width: 0; font-size: 13px; }
+.booking-date-field { position: relative; display: block; min-width: 0; }
+.booking-date-field .feature-icon {
+  position: absolute;
+  top: 50%;
+  right: 11px;
+  transform: translateY(-50%);
+  color: var(--lime);
+  pointer-events: none;
+}
+.booking-date-field input[type="date"] { margin: 0; padding: 7px 36px 7px 10px; font-size: 16px; }
+.booking-date-field input::-webkit-date-and-time-value { min-width: 0; text-align: left; }
+.booking-date-field input::-webkit-calendar-picker-indicator {
+  position: absolute;
+  inset-inline-end: 7px;
+  width: 23px;
+  height: 23px;
+  opacity: 0;
+  cursor: pointer;
+}
 .booking-date-grid input, #share-manual {
   display: block;
   width: 100%;
@@ -216,8 +248,10 @@ h3 { font-size: 22px; margin-bottom: 12px; }
 #booking-quote { margin: 8px 0; font-weight: 700; }
 #booking-quote:empty, #share-status:empty { display: none; }
 #share-manual[hidden], #vehicle-share[hidden] { display: none; }
-.vehicle-share { margin-top: 16px; text-align: center; }
-.vehicle-share .header-contact, #analytics-settings {
+.vehicle-share-feedback { text-align: center; }
+#vehicle-share { gap: 8px; }
+#vehicle-share svg { color: currentColor; }
+#analytics-settings {
   background: transparent;
   color: inherit;
   border: 1px solid #66736b;
@@ -228,15 +262,29 @@ h3 { font-size: 22px; margin-bottom: 12px; }
 .faq details p { margin: 8px 0 0; }
 .text-link { text-decoration: underline; text-underline-offset: 3px; }
 .consent-actions { display: flex; flex-wrap: wrap; gap: 8px; }
-@media (max-width: 359px) { .booking-date-grid { grid-template-columns: 1fr; } }
+@media (max-width: 399px) { .booking-date-grid { grid-template-columns: 1fr; } }
+.booking-breakdown {
+  margin: 8px 0 12px;
+  padding: 0 12px;
+  border: 1px solid #46514b;
+  border-radius: 12px;
+  background: #1a241f;
+  font-size: 13px;
+}
+.booking-breakdown > div { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 8px; padding: 5px 0; align-items: baseline; }
+.booking-breakdown dd { margin: 0; text-align: right; font-weight: 700; }
+.booking-breakdown .booking-breakdown__total { color: var(--lime); border-top: 1px solid #46514b; font-weight: 800; padding: 8px 0; }
+#booking-dialog .contact-options__list { justify-content: center; gap: 8px; }
+#booking-dialog .contact-options { text-align: center; }
 
 .rental-parameters {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 10px;
 }
-.rental-parameters li { background: var(--surface); padding: 12px; }
-.rental-parameters strong { display: block; font-size: 18px; }
+.rental-parameters li { background: var(--surface); padding: 12px; gap: 12px; align-items: start; }
+.rental-parameters li > span { flex: 1; min-width: 0; }
+.rental-parameters strong { display: block; margin-top: 5px; padding-top: 5px; border-top: 1px solid var(--line); font-size: 18px; }
 .terms-grid h3 { display: flex; align-items: center; gap: 8px; }
 #terms .common-equipment h2 { display: flex; align-items: center; font-size: 22px; }
 .booking-parameters { margin: 0 0 10px; font-size: 13px; color: #c3ccc6; }
