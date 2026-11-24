@@ -151,6 +151,23 @@ def contacts(company, variant):
     )
 
 
+def pickup_address(company):
+    pickup = company["pickup"]
+    return f'{pickup["region"]}, г. {pickup["locality"]}, {pickup["street"]}'
+
+
+def email_link(email):
+    return f'<a class="text-link" href="mailto:{escape(email)}">{escape(email)}</a>' if email else ""
+
+
+def booking_contacts(data):
+    company = data["company"]
+    email = email_link(data["legal"]["email"])
+    return (contacts(company, "booking")
+            + f'<p class="pickup-address"><strong>Адрес выдачи автомобилей</strong><br>{escape(pickup_address(company))}</p>'
+            + (f'<p>Электронная почта: {email}</p>' if email else ""))
+
+
 def metadata(company, vehicle, hero, legal):
     base = f'https://{company["domain"]}'
     url = base + (vehicle["path"] if vehicle else "/")
@@ -177,13 +194,20 @@ def metadata(company, vehicle, hero, legal):
              ]},
         ]
     else:
-        title = f"{brand} — аренда автомобилей в Москве"
-        description = f"{brand} (AutoVau) — каталог автомобилей в аренду в Москве. Фотографии, тарифы, условия аренды и бронирование."
+        title = f"{brand} — аренда автомобилей в Москве и Московской области"
+        description = f"{brand} (AutoVau) — аренда автомобилей в Москве и Московской области. Каталог, тарифы и бронирование. Выдача автомобилей в Балашихе."
         organization_id = base + "/#organization"
+        pickup = company["pickup"]
         graph = [
             {"@type": "Organization", "@id": organization_id, "url": url, "name": brand,
              "alternateName": company["alternate_names"], "legalName": legal["operator"],
              "taxID": legal["inn"], "telephone": company["phone_display"],
+             **({"email": legal["email"]} if legal["email"] else {}),
+             "areaServed": ["Москва", "Московская область"],
+             "location": {"@type": "Place", "name": "Пункт выдачи автомобилей АвтоВау",
+                          "address": {"@type": "PostalAddress", "streetAddress": pickup["street"],
+                                      "addressLocality": pickup["locality"], "addressRegion": pickup["region"],
+                                      "addressCountry": pickup["country"]}},
              "identifier": {"@type": "PropertyValue", "propertyID": "ОГРНИП", "value": legal["ogrnip"]},
              "contactPoint": {"@type": "ContactPoint", "contactType": "Связь по аренде",
                               "telephone": company["phone_display"]}},
@@ -258,7 +282,7 @@ def vehicle_page(vehicle, data):
         terms=rental_conditions(data["rental_terms"], vehicle),
         common_equipment=inherited_equipment(data), tariff_note=escape(vehicle["tariff_note"]),
         tariffs="".join(tariffs), gallery=gallery,
-        contact_note=escape(vehicle["contact_note"]), contacts=contacts(company, "booking"),
+        contact_note=escape(vehicle["contact_note"]), contacts=booking_contacts(data),
     )
 
 
@@ -285,11 +309,11 @@ def pages(data):
     company = data["company"]
     legal = data["legal"]
     legal_fields = {key: escape(value) for key, value in legal.items() if isinstance(value, str)}
-    email = legal.get("email")
-    email_link = f'<a class="text-link" href="mailto:{escape(email)}">{escape(email)}</a>' if email else ""
+    email = email_link(legal.get("email"))
+    pickup = escape(pickup_address(company))
     legal_footer = render(
         "legal-footer", operator=legal_fields["operator"], inn=legal_fields["inn"], ogrnip=legal_fields["ogrnip"],
-        address=legal_fields["address"], email_row=f"<p>{email_link}</p>" if email_link else "",
+        pickup_address=pickup, email_row=f"<p>Электронная почта: {email}</p>" if email else "",
         year=datetime.now(timezone(timedelta(hours=3))).year,
     )
     vehicles = data["vehicles"]
@@ -315,7 +339,7 @@ def pages(data):
     ) for v in vehicles)
     hero_image = photo(banner or hero, "hero-photo hero-banner" if banner else "hero-photo", priority=True)
     home = render("home", hero_image=hero_image, cards=cards, faq=faq(vehicles, data["rental_terms"]),
-                  common_equipment=inherited_equipment(data), contacts=contacts(company, "booking"))
+                  common_equipment=inherited_equipment(data), contacts=booking_contacts(data))
 
     def document(body, vehicle=None, missing=False, legal_metadata=None):
         v = vehicle
@@ -359,7 +383,7 @@ def pages(data):
         head = (f'<title>{escape(title)} — АвтоВау</title><meta name="description" content="{escape(description)}">'
                 f'<link rel="canonical" href="https://{escape(company["domain"])}/{path}">')
         body = render(template, **legal_fields, phone_url=escape(phone_url), phone_display=escape(company["phone_display"]),
-                      email_text=email_link or "Адрес уточняется.",
+                      email_text=email or "Адрес уточняется.", pickup_address=pickup,
                       draft_notice='' if legal["policy_approved"] else '<p class="policy-notice"><strong>Проект. Ожидает утверждения владельцем.</strong></p>',
                       analytics_note="" if counter else "В текущей версии сайта счётчик отключён.")
         output[path] = document(body, legal_metadata=head)

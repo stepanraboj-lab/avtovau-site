@@ -52,13 +52,23 @@ with ZipFile(ROOT / "site.zip") as archive:
     requisites_page = archive.read("requisites.html").decode()
     assert "Политика обработки персональных данных и конфиденциальности" in privacy_page
     assert len(re.findall(r"<section><h2>\d+\.", privacy_page)) == 15
-    assert "Контактный адрес" in requisites_page and "Банковская визитка ИП" in requisites_page
+    assert "Адрес выдачи автомобилей" in requisites_page and "Банковская визитка ИП" in requisites_page
+    organization = next(item for item in json.loads(re.search(
+        r'type="application/ld\+json">(.*?)</script>', archive.read("index.html").decode()
+    )[1])["@graph"] if item["@type"] == "Organization")
+    assert organization["email"] == data["legal"]["email"]
+    assert organization["location"]["@type"] == "Place"
+    assert organization["location"]["address"]["streetAddress"] == data["company"]["pickup"]["street"]
+    assert "address" not in organization
+    assert f'mailto:{data["legal"]["email"]}' in privacy_page
     for route in routes:
         name = route.lstrip("/") + ("index.html" if route.endswith("/") else "")
         markup = archive.read(name).decode()
         config = json.loads(re.search(r'id="page-settings">(.*?)</script>', markup)[1])
         assert config["counterId"] == (data["analytics"]["counter_id"] if data["legal"]["policy_approved"] else None)
         assert 'id="analytics-settings"' in markup and "legal-footer" in markup
+        assert "Снайперская" not in markup
+        assert f'mailto:{data["legal"]["email"]}' in markup
     approved = {
         "peugeot-308-sw": (7, 15000, 150, 20),
         "vw-polo-2013": (1, 7000, 150, 15),

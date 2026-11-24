@@ -37,7 +37,13 @@
         "label": "Позвонить",
         "accessible_label": "Позвонить по номеру +7 (977) 852-27-86"
       }
-    ]
+    ],
+    "pickup": {
+      "region": "Московская область",
+      "locality": "Балашиха",
+      "street": "ул. Цветочная, д. 30А",
+      "country": "RU"
+    }
   },
   "common_equipment": [
     {
@@ -550,8 +556,7 @@
     "operator": "Индивидуальный предприниматель Рябой Степан Васильевич",
     "inn": "502766789981",
     "ogrnip": "322508100636911",
-    "address": "г. Москва, ул. Снайперская, д. 8Б",
-    "email": null,
+    "email": "step4ik956@icloud.com",
     "registry_number": "77-26-552848",
     "registry_notification": "05.05.2026",
     "registry_order": "приказ № 261 от 19.05.2026",
