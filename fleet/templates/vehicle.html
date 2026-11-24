@@ -13,20 +13,18 @@
         <button type="button" class="booking-actions__control booking-actions__control--primary booking-trigger" aria-haspopup="dialog" aria-controls="booking-dialog">Забронировать</button>
         <a class="booking-actions__control booking-actions__control--secondary" href="#tariffs">Посмотреть тарифы</a>
       </div>
+      <div class="vehicle-share">
+        <button id="vehicle-share" class="header-contact" type="button" hidden>Поделиться</button>
+        <p id="share-status" role="status"></p>
+        <input id="share-manual" aria-label="Каноническая ссылка" readonly hidden>
+      </div>
     </div>
     $hero_photo
   </section>
   <section class="wrap section" id="terms">
     <h2>Параметры и условия аренды</h2>
-    <p>$description</p>
-    <ul class="facts">
-      <li>Минимальный срок аренды: <strong>$minimum</strong></li>
-      <li>Пробег в сутки: <strong>$daily_km&nbsp;км</strong></li>
-      <li>$deposit_label: <strong>$deposit&nbsp;₽</strong></li>
-    </ul>
-    $deposit_note
+    <ul class="facts rental-parameters">$rental_parameters</ul>
     <div class="terms-grid">$terms</div>
-    $rental_notice
     $common_equipment
   </section>
   <section class="wrap section" id="tariffs">

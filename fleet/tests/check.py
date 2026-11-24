@@ -1,0 +1,104 @@
+"""Проверка данных, статических страниц и архива без сторонних зависимостей."""
+
+from copy import deepcopy
+from html.parser import HTMLParser
+import json
+from pathlib import Path
+from urllib.parse import unquote, urlsplit
+from xml.etree import ElementTree as ET
+from zipfile import ZipFile
+import sys
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from build import ROOT, build, validate
+
+
+class Page(HTMLParser):
+    def __init__(self, markup):
+        super().__init__()
+        self.ids = set()
+        self.links = []
+        self.canonical = []
+        self.feed(markup)
+
+    def handle_starttag(self, tag, raw):
+        props = dict(raw)
+        if "id" in props:
+            assert props["id"] not in self.ids, f'Повтор ID {props["id"]}'
+            self.ids.add(props["id"])
+        if tag == "link" and props.get("rel") == "canonical":
+            self.canonical.append(props["href"])
+        self.links.extend(props[key] for key in ("href", "src") if key in props)
+
+
+data = json.loads((ROOT / "fleet.json").read_text(encoding="utf-8"))
+source = (ROOT / "site.zip").read_bytes()
+assert build(data, source) == source, "Архив не соответствует сборке"
+base = f'https://{data["company"]["domain"]}'
+routes = {"/", *(v["path"] for v in data["vehicles"])}
+with ZipFile(ROOT / "site.zip") as archive:
+    assert archive.testzip() is None
+    names = set(archive.namelist())
+    assert len(names) == len(archive.namelist())
+    assert {"404.html", "CNAME", ".nojekyll", "sitemap.xml", "robots.txt", "favicon.png"} <= names
+    sitemap = ET.fromstring(archive.read("sitemap.xml"))
+    locations = [loc.text for loc in sitemap.findall(".//{http://www.sitemaps.org/schemas/sitemap/0.9}loc")]
+    assert set(locations) == {base + route for route in routes} and len(locations) == len(routes)
+    assert base + "/sitemap.xml" in archive.read("robots.txt").decode()
+    pages = {route: Page(archive.read(route.lstrip("/") + "index.html").decode()) for route in routes}
+    pages["/404.html"] = Page(archive.read("404.html").decode())
+    approved = {
+        "peugeot-308-sw": (7, 15000, 150, 20),
+        "vw-polo-2013": (1, 7000, 150, 15),
+        "renault-logan": (1, 7000, 150, 15),
+        "kia-rio": (1, 7000, 150, 15),
+    }
+    group_titles = [
+        "Требования к водителю", "Страхование", "Пробег и территория", "Оплата и депозит",
+        "Правила эксплуатации", "Действия при ДТП", "В каждой машине",
+    ]
+    total_tariffs = 0
+    for vehicle in data["vehicles"]:
+        total_tariffs += len(vehicle["tariffs"])
+        minimum, deposit, km, overage = approved[vehicle["id"]]
+        assert (vehicle["minimum_days"], vehicle["deposit"]["rub"], vehicle["daily_km"], vehicle["overage_rub"]) == (minimum, deposit, km, overage)
+        content = archive.read(vehicle["path"].lstrip("/") + "index.html").decode()
+        terms = content.split('id="terms"', 1)[1].split("</section>", 1)[0]
+        order = [terms.index(title) for title in group_titles]
+        assert order == sorted(order)
+        assert f"Перепробег — {overage} ₽/км." in terms and "Территория эксплуатации — до ЦКАД." in terms
+        assert f'Возвратный депозит — {deposit:,}'.replace(",", " ") in terms
+    assert total_tariffs == 18
+    excluded = ("внж", "рвп", "осагo без огранич", "осаго без огранич", "незамедлительно сообщ",
+                "сразу связаться с владельцем", "25 ₽ за килом", "25 ₽/км")
+    for entry in names:
+        if entry.endswith((".html", ".txt")):
+            content = archive.read(entry).decode().lower()
+            assert all(text not in content for text in excluded), entry
+    for route, page in pages.items():
+        assert page.canonical == ([base + route] if route in routes else [])
+        for link in page.links:
+            target = urlsplit(link)
+            if target.scheme or target.netloc:
+                continue
+            target_path = unquote(target.path) or route
+            if target_path in pages:
+                assert not target.fragment or target.fragment in pages[target_path].ids, (route, link)
+            else:
+                assert target_path.lstrip("/") in names, (route, link)
+    for change in (
+        lambda copy: copy["vehicles"].append(copy["vehicles"][0]),
+        lambda copy: copy["vehicles"][0].update(status="rented", rented_until="2026-02-30"),
+        lambda copy: copy["vehicles"][0]["tariffs"][0].update(daily_rub=0),
+        lambda copy: copy["company"]["contacts"][0].update(url="http://t.me/example"),
+        lambda copy: copy["vehicles"][0]["photo"].update(src="assets/missing.jpg"),
+        lambda copy: copy["analytics"].update(counter_id=123, privacy_url=None),
+    ):
+        candidate = deepcopy(data)
+        change(candidate)
+        try:
+            validate(candidate, archive)
+        except ValueError:
+            continue
+        raise AssertionError("Некорректные данные прошли валидацию")
+print("Проверены данные, отрицательные сценарии, ссылки, sitemap, canonical и ZIP.")
