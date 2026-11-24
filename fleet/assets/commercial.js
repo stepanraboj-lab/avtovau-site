@@ -95,13 +95,14 @@ if (dialog && source) {
       empty: '', incomplete: 'Укажите обе даты для расчёта.', invalid: 'Проверьте выбранные даты.',
       past: 'Дата начала не может быть в прошлом.',
       order: 'Дата окончания должна быть позже даты начала.',
+      minimum: assessment.state === 'minimum' ? `Выбранный срок: ${rentalDays(assessment.days)}. Минимальный срок аренды — ${rentalDays(vehicle.minimum_days)}.` : '',
       unknown: assessment.days ? `${rentalDays(assessment.days)}. Уточните стоимость у владельца.` : '',
-      priced: assessment.days ? `${rentalDays(assessment.days)} · предварительно ${rubles.format(assessment.total)} ₽ за аренду. Залог отдельно.` : ''
+      priced: assessment.days ? `${rentalDays(assessment.days)} · предварительно ${rubles.format(assessment.total)} ₽ за аренду.` : ''
     };
     if (result) result.textContent = notices[assessment.state];
     if (booking) {
       start.setAttribute('aria-invalid', String(['invalid', 'past'].includes(assessment.state)));
-      end.setAttribute('aria-invalid', String(['invalid', 'order'].includes(assessment.state)));
+      end.setAttribute('aria-invalid', String(['invalid', 'order', 'minimum'].includes(assessment.state)));
     }
     const body = message(booking ? vehicle : null, start?.value, end?.value, assessment);
     messengers.forEach((link, index) => { link.href = contactUrl(originals[index], body); });

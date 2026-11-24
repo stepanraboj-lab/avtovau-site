@@ -47,6 +47,34 @@ with ZipFile(ROOT / "site.zip") as archive:
     assert base + "/sitemap.xml" in archive.read("robots.txt").decode()
     pages = {route: Page(archive.read(route.lstrip("/") + "index.html").decode()) for route in routes}
     pages["/404.html"] = Page(archive.read("404.html").decode())
+    approved = {
+        "peugeot-308-sw": (7, 15000, 150, 20),
+        "vw-polo-2013": (1, 7000, 150, 15),
+        "renault-logan": (1, 7000, 150, 15),
+        "kia-rio": (1, 7000, 150, 15),
+    }
+    group_titles = [
+        "Требования к водителю", "Страхование", "Пробег и территория", "Оплата и депозит",
+        "Правила эксплуатации", "Действия при ДТП", "В каждой машине",
+    ]
+    total_tariffs = 0
+    for vehicle in data["vehicles"]:
+        total_tariffs += len(vehicle["tariffs"])
+        minimum, deposit, km, overage = approved[vehicle["id"]]
+        assert (vehicle["minimum_days"], vehicle["deposit"]["rub"], vehicle["daily_km"], vehicle["overage_rub"]) == (minimum, deposit, km, overage)
+        content = archive.read(vehicle["path"].lstrip("/") + "index.html").decode()
+        terms = content.split('id="terms"', 1)[1].split("</section>", 1)[0]
+        order = [terms.index(title) for title in group_titles]
+        assert order == sorted(order)
+        assert f"Перепробег — {overage} ₽/км." in terms and "Территория эксплуатации — до ЦКАД." in terms
+        assert f'Возвратный депозит — {deposit:,}'.replace(",", " ") in terms
+    assert total_tariffs == 18
+    excluded = ("внж", "рвп", "осагo без огранич", "осаго без огранич", "незамедлительно сообщ",
+                "сразу связаться с владельцем", "25 ₽ за килом", "25 ₽/км")
+    for entry in names:
+        if entry.endswith((".html", ".txt")):
+            content = archive.read(entry).decode().lower()
+            assert all(text not in content for text in excluded), entry
     for route, page in pages.items():
         assert page.canonical == ([base + route] if route in routes else [])
         for link in page.links:

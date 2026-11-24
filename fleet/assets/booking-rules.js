@@ -23,6 +23,7 @@ export function quote(start, end, vehicle, today = todayInMoscow()) {
   if (start < today) return {state: 'past'};
   if (to <= from) return {state: 'order'};
   const days = (to - from) / day;
+  if (days < vehicle.minimum_days) return {state: 'minimum', days};
   const rate = vehicle.tariffs.find(item => item.days === days);
   return rate ? {state: 'priced', days, total: days * rate.daily_rub} : {state: 'unknown', days};
 }
@@ -34,7 +35,8 @@ export function rentalDays(days) {
 
 export function message(vehicle, start = '', end = '', result = {}) {
   if (!vehicle) return 'Здравствуйте! Интересует аренда автомобиля. Подскажите, пожалуйста, какие машины сейчас доступны?';
-  const dates = result.days ? ` с ${dateLabel.format(dateValue(start))} по ${dateLabel.format(dateValue(end))}, на ${rentalDays(result.days)}` : '';
+  const validPeriod = result.state === 'priced' || result.state === 'unknown';
+  const dates = validPeriod ? ` с ${dateLabel.format(dateValue(start))} по ${dateLabel.format(dateValue(end))}, на ${rentalDays(result.days)}` : '';
   return `Здравствуйте! Хочу арендовать ${vehicle.name} ${vehicle.year} года${dates}. Подскажите, пожалуйста, доступен ли автомобиль?`;
 }
 

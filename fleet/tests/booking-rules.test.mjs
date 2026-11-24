@@ -15,7 +15,11 @@ test('все тарифы из fleet.json рассчитываются толь�
         state: 'priced', days: tariff.days, total: tariff.daily_rub * tariff.days
       });
     }
-    assert.deepEqual(quote(from, '2026-12-12', vehicle, today), {state: 'unknown', days: 2});
+    const state = vehicle.minimum_days > 2 ? 'minimum' : 'unknown';
+    assert.deepEqual(quote(from, '2026-12-12', vehicle, today), {state, days: 2});
+    if (state === 'minimum') {
+      assert.doesNotMatch(message(vehicle, from, '2026-12-12', {state, days: 2}), /10\.12\.2026/);
+    }
   }
 });
 
@@ -35,9 +39,11 @@ test('сообщения для конкретной машины, без дат
   assert.match(dates, /Peugeot 308 SW 2008 года с 10\.12\.2026 по 17\.12\.2026, на 7 суток/);
   assert.match(message(car), /Peugeot 308 SW 2008 года\. Подскажите/);
   assert.match(message(null), /какие машины сейчас доступны/);
+  const special = message({...car, name: 'Модель & «Ё» + #'});
   for (const base of ['https://t.me/example','https://wa.me/12345678']) {
     const target = new URL(contactUrl(base, dates));
     assert.equal(target.searchParams.get('text'), dates);
     assert.equal(target.origin + target.pathname, base);
+    assert.equal(new URL(contactUrl(base, special)).searchParams.get('text'), special);
   }
 });

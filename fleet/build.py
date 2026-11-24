@@ -38,6 +38,11 @@ ICONS = {
     "charge": "M8 3v5m8-5v5M6 8h12v3a6 6 0 0 1-6 6v4m0-4a6 6 0 0 1-6-6z",
     "holder": "M8 3h8v14H8zM5 10v9h14v-9m-7 9v2m-4 0h8",
     "arrow": "M5 19 19 5M9 5h10v10",
+    "driver": "M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM4 21v-2a7 7 0 0 1 7-7h2a7 7 0 0 1 7 7v2Z",
+    "shield": "M12 3 4 6v5c0 5 3 8 8 10 5-2 8-5 8-10V6ZM9 12l2 2 4-4",
+    "route": "M5 4h14v16H5zM8 16l3-4 3 1 2-5",
+    "wallet": "M3 6h18v13H3zM21 10h-6v5h6m-4-2.5h.01",
+    "camera": "M3 7h5l2-3h4l2 3h5v13H3zM12 17a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z",
 }
 
 
@@ -193,6 +198,28 @@ def metadata(company, vehicle, hero):
     ])
 
 
+def rental_parameters(vehicle):
+    values = [
+        ("year", "Минимальный срок аренды", days(vehicle["minimum_days"])),
+        ("route", "Пробег в сутки", f'{vehicle["daily_km"]} км'),
+        ("wallet", "Возвратный депозит", f'{rubles(vehicle["deposit"]["rub"])} ₽'),
+    ]
+    return "".join(
+        f"<li>{icon(symbol)}<span>{escape(label)}<strong>{escape(value)}</strong></span></li>"
+        for symbol, label, value in values
+    )
+
+
+def rental_conditions(groups, vehicle):
+    values = {"daily_km": vehicle["daily_km"], "overage_rub": vehicle["overage_rub"],
+              "deposit": rubles(vehicle["deposit"]["rub"])}
+    output = []
+    for group in groups:
+        items = "".join(f"<li>{escape(rule.format_map(values))}</li>" for rule in group["rules"])
+        output.append(f'<article><h3>{icon(group["icon"])}{escape(group["title"])}</h3><ul>{items}</ul></article>')
+    return "".join(output)
+
+
 def vehicle_page(vehicle, data):
     company = data["company"]
     equipment = []
@@ -201,10 +228,6 @@ def vehicle_page(vehicle, data):
             item = escape(label)
             note = vehicle.get("equipment_notes", {}).get(key)
             equipment.append(f"<li>{item}{' · ' + escape(note) if note else ''}</li>")
-    terms = []
-    for group in vehicle["terms"]:
-        rules = "".join(f"<li>{escape(rule)}</li>" for rule in group["rules"])
-        terms.append(f'<article><h3>{escape(group["title"])}</h3><ul>{rules}</ul></article>')
     tariffs = []
     for rate in vehicle["tariffs"]:
         note = f'<small>{escape(rate["note"])}</small>' if "note" in rate else ""
@@ -221,31 +244,26 @@ def vehicle_page(vehicle, data):
     gallery = "".join(gallery_link(image, i) for i, image in enumerate(photos))
     return render(
         "vehicle", name=escape(vehicle["name"]), status=status(vehicle), features=features(vehicle),
-        short_description=escape(vehicle["short_description"]), description=escape(vehicle["description"]),
+        short_description=escape(vehicle["short_description"]),
         equipment='<ul class="equipment-list">' + "".join(equipment) + "</ul>" if equipment else "",
-        hero_photo=gallery_link(hero, hero_index, hero=True), minimum=days(vehicle["minimum_days"]),
-        daily_km=vehicle["daily_km"], deposit_label=escape(vehicle["deposit"]["label"]),
-        deposit=rubles(vehicle["deposit"]["rub"]),
-        deposit_note=paragraph(vehicle["deposit"].get("note")), terms="".join(terms),
+        hero_photo=gallery_link(hero, hero_index, hero=True), rental_parameters=rental_parameters(vehicle),
+        terms=rental_conditions(data["rental_terms"], vehicle),
         common_equipment=inherited_equipment(data), tariff_note=escape(vehicle["tariff_note"]),
-        rental_notice=paragraph(vehicle.get("rental_notice")), tariffs="".join(tariffs), gallery=gallery,
+        tariffs="".join(tariffs), gallery=gallery,
         contact_note=escape(vehicle["contact_note"]), contacts=contacts(company, "booking"),
     )
 
 
-def paragraph(value):
-    return f'<p class="rental-notice">{escape(value)}</p>' if value else ""
-
-
-def faq(vehicles):
+def faq(vehicles, terms):
     minimum = "; ".join(f'{v["name"]} — {days(v["minimum_days"])}' for v in vehicles)
     deposits = "; ".join(f'{v["name"]} — {rubles(v["deposit"]["rub"])} ₽' for v in vehicles)
-    mileage = "; ".join(f'{v["name"]} — {v["daily_km"]} км' for v in vehicles)
+    mileage = "; ".join(f'{v["name"]} — {v["daily_km"]} км в сутки, перепробег {v["overage_rub"]} ₽/км' for v in vehicles)
+    drivers = next(group["rules"] for group in terms if group["icon"] == "driver")
     items = [
-        ("Какие требования к водителю?", "Возраст от 21 года, безаварийный стаж от 3 лет. Документы и дополнительные требования зависят от автомобиля."),
+        ("Какие требования к водителю?", " ".join(drivers)),
         ("Какой минимальный срок аренды?", minimum + "."),
         ("Какой залог?", deposits + ". Условия возврата смотрите в карточке выбранной машины."),
-        ("Какой пробег включён в сутки?", mileage + ". Размер доплаты указан в условиях конкретного автомобиля."),
+        ("Какой пробег включён в сутки?", mileage + "."),
         ("Можно ли запросить даты для занятой машины?", "Да, напишите владельцу о будущих датах. Доступность и стоимость подтверждает владелец."),
     ]
     return '<section class="wrap section faq" id="faq"><h2>Частые вопросы</h2>' + "".join(
@@ -268,14 +286,14 @@ def pages(data):
         arrow=icon("arrow", "details-arrow"),
     ) for v in vehicles)
     hero_image = photo(banner or hero, "hero-photo hero-banner" if banner else "hero-photo", priority=True)
-    home = render("home", hero_image=hero_image, cards=cards, faq=faq(vehicles),
+    home = render("home", hero_image=hero_image, cards=cards, faq=faq(vehicles, data["rental_terms"]),
                   common_equipment=inherited_equipment(data), contacts=contacts(company, "booking"))
 
     def document(body, vehicle=None, missing=False):
         v = vehicle
         page_settings = {"counterId": counter, "vehicle": None}
         if v:
-            page_settings["vehicle"] = {key: v[key] for key in ("id", "name", "year")}
+            page_settings["vehicle"] = {key: v[key] for key in ("id", "name", "year", "minimum_days")}
             page_settings["vehicle"]["tariffs"] = [
                 {key: rate[key] for key in ("days", "daily_rub")} for rate in v["tariffs"]
             ]
@@ -288,7 +306,9 @@ def pages(data):
             else metadata(company, v, v["photo"] if v else hero),
             dialog_title=f'Связаться с {escape(company["name"])}',
             dialog_model=f'<p id="booking-model" class="booking-dialog__model" hidden>{escape(v["name"])}</p>' if v else "",
-            dialog_label="booking-title", booking_dates=render("booking-dates", status=status(v)) if v else "",
+            dialog_label="booking-title", booking_dates=render(
+                "booking-dates", status=status(v), minimum=days(v["minimum_days"]), deposit=rubles(v["deposit"]["rub"])
+            ) if v else "",
             viewport_fit=",viewport-fit=cover" if v else "",
             photo_viewer=render("photo-viewer", model=escape(v["name"])) if v else "",
             photo_assets=(
@@ -347,6 +367,9 @@ def validate(data, archive):
         if not re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", slug) or slug in ids or v["path"] != f"/cars/{slug}/":
             raise ValueError(f"Некорректный или повторяющийся ID/адрес: {slug}")
         ids.add(slug)
+        numbers = (v["minimum_days"], v["daily_km"], v["overage_rub"], v["deposit"]["rub"])
+        if any(type(value) is not int or value <= 0 for value in numbers):
+            raise ValueError(f"{slug}: параметры аренды должны быть положительными целыми числами")
         if set(v["equipment"]) != set(EQUIPMENT) or any(
             item is not None and type(item) is not bool for item in v["equipment"].values()
         ):

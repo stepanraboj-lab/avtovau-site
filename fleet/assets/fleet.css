@@ -229,3 +229,15 @@ h3 { font-size: 22px; margin-bottom: 12px; }
 .text-link { text-decoration: underline; text-underline-offset: 3px; }
 .consent-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 @media (max-width: 359px) { .booking-date-grid { grid-template-columns: 1fr; } }
+
+.rental-parameters {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+.rental-parameters li { background: var(--surface); padding: 12px; }
+.rental-parameters strong { display: block; font-size: 18px; }
+.terms-grid h3 { display: flex; align-items: center; gap: 8px; }
+#terms .common-equipment h2 { display: flex; align-items: center; font-size: 22px; }
+.booking-parameters { margin: 0 0 10px; font-size: 13px; color: #c3ccc6; }
+@media (max-width: 600px) { .rental-parameters { grid-template-columns: minmax(0, 1fr); } }
