@@ -85,6 +85,18 @@ with ZipFile(ROOT / "site.zip") as archive:
         minimum, deposit, km, overage = approved[vehicle["id"]]
         assert (vehicle["minimum_days"], vehicle["deposit"]["rub"], vehicle["daily_km"], vehicle["overage_rub"]) == (minimum, deposit, km, overage)
         content = archive.read(vehicle["path"].lstrip("/") + "index.html").decode()
+        original = vehicle["photo"]["src"]
+        expected = list(dict.fromkeys(image["src"] for image in vehicle["gallery"]))
+        if original not in expected:
+            expected.insert(0, original)
+        featured = vehicle.get("catalog_image")
+        if featured:
+            source = featured["src"]
+            expected = [source, *(path for path in expected if path != source)]
+            assert f'class="hero-photo-link" data-photo-index="0" href="/{source}"' in content
+            assert f'<div class="catalog-photo"><img class="" src="/{source}"' in archive.read("index.html").decode()
+        gallery = content.split('id="photos"', 1)[1].split("</section>", 1)[0]
+        assert re.findall(r'data-photo-index="\d+" href="/([^"]+)"', gallery) == expected
         terms = content.split('id="terms"', 1)[1].split("</section>", 1)[0]
         order = [terms.index(title) for title in group_titles]
         assert order == sorted(order)

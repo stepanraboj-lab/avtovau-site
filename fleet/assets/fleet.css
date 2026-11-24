@@ -193,6 +193,7 @@ h3 { font-size: 22px; margin-bottom: 12px; }
 .tariff-table small { color: var(--muted); display: block; margin-top: 4px; }
 .gallery a { display: block; border-radius: 16px; overflow: hidden; }
 .gallery img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; background: var(--surface); }
+.hero-photo.gallery-photo--catalog, .gallery img.gallery-photo--catalog { aspect-ratio: 3 / 2; object-fit: contain; }
 .booking-section .contact-options--booking { color: inherit; }
 .booking-section .contact-options__icon { background: #29352f; }
 .booking-section .contact-options__icon:hover { background: #3b4a41; }

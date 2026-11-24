@@ -87,11 +87,12 @@ def catalog_photo(vehicle):
     return vehicle.get("catalog_image", vehicle["photo"])
 
 
-def gallery_link(image, index, hero=False):
+def gallery_link(image, index, hero=False, featured=False):
     css = ' class="hero-photo-link"' if hero else ""
+    image_css = " ".join(name for name in ("hero-photo" if hero else "", "gallery-photo--catalog" if featured else "") if name)
     return (
         f'<a{css} data-photo-index="{index}" href="/{escape(image["src"])}" '
-        f'target="_blank" rel="noopener">{photo(image, "hero-photo" if hero else "", lazy=not hero)}</a>'
+        f'target="_blank" rel="noopener">{photo(image, image_css, lazy=not hero)}</a>'
     )
 
 
@@ -267,17 +268,21 @@ def vehicle_page(vehicle, data):
             end = ordered[i + 1]["days"] - 1
             period = days(start) if start == end else f'{start}–{days(end)}'
         tariffs.append(f'<tr><td>{escape(period)}</td><td>{rubles(rate["daily_rub"])} ₽</td></tr>')
-    hero = vehicle["photo"]
+    original = vehicle["photo"]
+    hero = catalog_photo(vehicle)
     photos = list({image["src"]: image for image in vehicle["gallery"]}.values())
-    if not any(image["src"] == hero["src"] for image in photos):
-        photos.insert(0, hero)
+    if not any(image["src"] == original["src"] for image in photos):
+        photos.insert(0, original)
+    featured = "catalog_image" in vehicle
+    if featured:
+        photos = [hero, *(image for image in photos if image["src"] != hero["src"])]
     hero_index = next(i for i, image in enumerate(photos) if image["src"] == hero["src"])
-    gallery = "".join(gallery_link(image, i) for i, image in enumerate(photos))
+    gallery = "".join(gallery_link(image, i, featured=featured and i == 0) for i, image in enumerate(photos))
     return render(
         "vehicle", name=escape(vehicle["name"]), status=status(vehicle), features=features(vehicle),
         short_description=escape(vehicle["short_description"]),
         equipment='<ul class="equipment-list">' + "".join(equipment) + "</ul>" if equipment else "",
-        hero_photo=gallery_link(hero, hero_index, hero=True), rental_parameters=rental_parameters(vehicle),
+        hero_photo=gallery_link(hero, hero_index, hero=True, featured=featured), rental_parameters=rental_parameters(vehicle),
         share_icon=icon("share"),
         terms=rental_conditions(data["rental_terms"], vehicle),
         common_equipment=inherited_equipment(data), tariff_note=escape(vehicle["tariff_note"]),
