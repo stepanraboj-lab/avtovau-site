@@ -382,7 +382,7 @@ def pages(data):
     phone_url = next(item["url"] for item in company["contacts"] if item["id"] == "phone")
     for template, title, description in (
         ("privacy", "Политика обработки персональных данных и конфиденциальности", "Обработка данных посетителей и арендаторов АвтоВау, cookies, права и контакты оператора."),
-        ("requisites", "Реквизиты арендодателя", "Реквизиты, контактный адрес и банковская визитка предпринимателя АвтоВау."),
+        ("requisites", "Реквизиты арендодателя", "Реквизиты предпринимателя АвтоВау, адрес выдачи автомобилей и контакты."),
     ):
         path = f"{template}.html"
         head = (f'<title>{escape(title)} — АвтоВау</title><meta name="description" content="{escape(description)}">'

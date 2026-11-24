@@ -52,7 +52,7 @@ with ZipFile(ROOT / "site.zip") as archive:
     requisites_page = archive.read("requisites.html").decode()
     assert "Политика обработки персональных данных и конфиденциальности" in privacy_page
     assert len(re.findall(r"<section><h2>\d+\.", privacy_page)) == 15
-    assert "Адрес выдачи автомобилей" in requisites_page and "Банковская визитка ИП" in requisites_page
+    assert "Адрес выдачи автомобилей" in requisites_page
     organization = next(item for item in json.loads(re.search(
         r'type="application/ld\+json">(.*?)</script>', archive.read("index.html").decode()
     )[1])["@graph"] if item["@type"] == "Organization")
@@ -122,6 +122,7 @@ with ZipFile(ROOT / "site.zip") as archive:
         if entry.endswith((".html", ".txt")):
             content = archive.read(entry).decode().lower()
             assert all(text not in content for text in excluded), entry
+            assert all(text not in content for text in ("снайперск", "банковская визитка", "i.tochka.com/bank/myprofile")), entry
     for route, page in pages.items():
         assert page.canonical == ([base + route] if route in routes else [])
         for link in page.links:
