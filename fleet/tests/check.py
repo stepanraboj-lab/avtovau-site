@@ -11,7 +11,7 @@ from zipfile import ZipFile
 import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from build import ROOT, build, days, rubles, validate
+from build import ROOT, NONPUBLIC_ARCHIVE_ENTRIES, build, days, rubles, validate
 
 
 class Page(HTMLParser):
@@ -29,25 +29,50 @@ class Page(HTMLParser):
             self.ids.add(props["id"])
         if tag == "link" and props.get("rel") == "canonical":
             self.canonical.append(props["href"])
-        self.links.extend(props[key] for key in ("href", "src") if key in props)
+        self.links.extend(props[key] for key in ("href", "src", "data-thumbnail") if key in props)
+        if "srcset" in props:
+            assert props.get("sizes"), "Для srcset нужен sizes"
+            self.links.extend(candidate.strip().split()[0] for candidate in props["srcset"].split(","))
 
 
 data = json.loads((ROOT / "fleet.json").read_text(encoding="utf-8"))
 source = (ROOT / "site.zip").read_bytes()
 assert build(data, source) == source, "Архив не соответствует сборке"
 base = f'https://{data["company"]["domain"]}'
-routes = {"/", *(v["path"] for v in data["vehicles"])}
+routes = {"/", "/privacy.html", "/requisites.html", *(v["path"] for v in data["vehicles"])}
 with ZipFile(ROOT / "site.zip") as archive:
     assert archive.testzip() is None
     names = set(archive.namelist())
     assert len(names) == len(archive.namelist())
+    assert names.isdisjoint(NONPUBLIC_ARCHIVE_ENTRIES)
     assert {"404.html", "CNAME", ".nojekyll", "sitemap.xml", "robots.txt", "favicon.png"} <= names
     sitemap = ET.fromstring(archive.read("sitemap.xml"))
     locations = [loc.text for loc in sitemap.findall(".//{http://www.sitemaps.org/schemas/sitemap/0.9}loc")]
     assert set(locations) == {base + route for route in routes} and len(locations) == len(routes)
     assert base + "/sitemap.xml" in archive.read("robots.txt").decode()
-    pages = {route: Page(archive.read(route.lstrip("/") + "index.html").decode()) for route in routes}
+    pages = {route: Page(archive.read(route.lstrip("/") + ("index.html" if route.endswith("/") else "")).decode()) for route in routes}
     pages["/404.html"] = Page(archive.read("404.html").decode())
+    privacy_page = archive.read("privacy.html").decode()
+    requisites_page = archive.read("requisites.html").decode()
+    assert "Политика обработки персональных данных и конфиденциальности" in privacy_page
+    assert len(re.findall(r"<section><h2>\d+\.", privacy_page)) == 15
+    assert "Адрес выдачи автомобилей" in requisites_page
+    organization = next(item for item in json.loads(re.search(
+        r'type="application/ld\+json">(.*?)</script>', archive.read("index.html").decode()
+    )[1])["@graph"] if item["@type"] == "Organization")
+    assert organization["email"] == data["legal"]["email"]
+    assert organization["location"]["@type"] == "Place"
+    assert organization["location"]["address"]["streetAddress"] == data["company"]["pickup"]["street"]
+    assert "address" not in organization
+    assert f'mailto:{data["legal"]["email"]}' in privacy_page
+    for route in routes:
+        name = route.lstrip("/") + ("index.html" if route.endswith("/") else "")
+        markup = archive.read(name).decode()
+        config = json.loads(re.search(r'id="page-settings">(.*?)</script>', markup)[1])
+        assert config["counterId"] == (data["analytics"]["counter_id"] if data["legal"]["policy_approved"] else None)
+        assert 'id="analytics-settings"' in markup and "legal-footer" in markup
+        assert "Снайперская" not in markup
+        assert f'mailto:{data["legal"]["email"]}' in markup
     approved = {
         "peugeot-308-sw": (7, 15000, 150, 20),
         "vw-polo-2013": (1, 7000, 150, 15),
@@ -64,6 +89,18 @@ with ZipFile(ROOT / "site.zip") as archive:
         minimum, deposit, km, overage = approved[vehicle["id"]]
         assert (vehicle["minimum_days"], vehicle["deposit"]["rub"], vehicle["daily_km"], vehicle["overage_rub"]) == (minimum, deposit, km, overage)
         content = archive.read(vehicle["path"].lstrip("/") + "index.html").decode()
+        original = vehicle["photo"]["src"]
+        expected = list(dict.fromkeys(image["src"] for image in vehicle["gallery"]))
+        if original not in expected:
+            expected.insert(0, original)
+        featured = vehicle.get("catalog_image")
+        if featured:
+            source = featured["src"]
+            expected = [source, *(path for path in expected if path != source)]
+            assert f'class="hero-photo-link" data-photo-index="0" href="/{source}"' in content
+            assert f'<div class="catalog-photo"><img class="" src="/{source}"' in archive.read("index.html").decode()
+        gallery = content.split('id="photos"', 1)[1].split("</section>", 1)[0]
+        assert re.findall(r'data-photo-index="\d+" href="/([^"]+)"', gallery) == expected
         terms = content.split('id="terms"', 1)[1].split("</section>", 1)[0]
         order = [terms.index(title) for title in group_titles]
         assert order == sorted(order)
@@ -89,6 +126,7 @@ with ZipFile(ROOT / "site.zip") as archive:
         if entry.endswith((".html", ".txt")):
             content = archive.read(entry).decode().lower()
             assert all(text not in content for text in excluded), entry
+            assert all(text not in content for text in ("снайперск", "банковская визитка", "i.tochka.com/bank/myprofile")), entry
     for route, page in pages.items():
         assert page.canonical == ([base + route] if route in routes else [])
         for link in page.links:

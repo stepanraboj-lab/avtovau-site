@@ -1,7 +1,7 @@
 """Собирает статический сайт из fleet.json, шаблонов и исходных ресурсов site.zip."""
 
 import argparse
-from datetime import date
+from datetime import date, datetime, timedelta, timezone
 from html import escape
 from io import BytesIO
 import json
@@ -77,21 +77,46 @@ def monthly(vehicle):
     return next(rate["daily_rub"] for rate in vehicle["tariffs"] if rate["days"] == 30)
 
 
-def photo(image, css="", lazy=False, priority=False):
+CATALOG_WIDTHS = (360, 480, 640, 800, 960)
+GALLERY_WIDTHS = (320, 560, 800, 1120)
+HERO_SIZES = "(max-width: 720px) calc(100vw - 32px), (max-width: 1152px) calc(50vw - 16px - clamp(12px, 2vw, 24px)), 536px"
+BANNER_SIZES = "(max-width: 720px) calc(100vw - 32px), (max-width: 899px) calc(48vw - 16px), (max-width: 1152px) calc(52.8vw - 17.6px), 590px"
+CATALOG_SIZES = "(max-width: 720px) calc(100vw - 34px), (max-width: 1152px) calc(50vw - 27px), 548px"
+GALLERY_SIZES = "(max-width: 1152px) calc(50vw - 23px), 553px"
+NONPUBLIC_ARCHIVE_ENTRIES = {
+    "assets/IMG_7596.jpeg", "assets/IMG_7599.jpeg", "assets/vw-polo-2013.jpeg",
+    "assets/booking-modal.js", "README.txt", "GITHUB_PAGES_README.txt",
+}
+
+
+def responsive_path(source, width):
+    return f"assets/responsive/{source.removeprefix('assets/')}-{width}.webp"
+
+
+def photo(image, css="", lazy=False, priority=False, *, available=(), sizes="", widths=CATALOG_WIDTHS, low=False):
     loading = ' loading="lazy"' if lazy else ""
-    fetch = ' fetchpriority="high"' if priority else ""
-    return f'<img class="{css}" src="/{escape(image["src"])}" alt="{escape(image["alt"])}"{loading}{fetch}>'
+    fetch = ' fetchpriority="high"' if priority else (' fetchpriority="low"' if low else "")
+    paths = [(responsive_path(image["src"], width), width) for width in widths]
+    candidates = ", ".join(f"/{path} {width}w" for path, width in paths if path in available)
+    responsive = f' srcset="{escape(candidates)}" sizes="{sizes}"' if candidates else ""
+    return f'<img class="{css}" src="/{escape(image["src"])}" alt="{escape(image["alt"])}"{loading}{fetch}{responsive}>'
 
 
 def catalog_photo(vehicle):
     return vehicle.get("catalog_image", vehicle["photo"])
 
 
-def gallery_link(image, index, hero=False):
+def gallery_link(image, index, available, hero=False, featured=False):
     css = ' class="hero-photo-link"' if hero else ""
+    image_css = " ".join(name for name in ("hero-photo" if hero else "", "gallery-photo--catalog" if featured else "") if name)
+    thumb = responsive_path(image["src"], 224)
+    thumb_attr = f' data-thumbnail="/{escape(thumb)}"' if thumb in available else ""
+    preview = photo(image, image_css, lazy=not hero, available=available,
+                    sizes=HERO_SIZES if hero else GALLERY_SIZES,
+                    widths=CATALOG_WIDTHS if hero or featured else GALLERY_WIDTHS)
     return (
         f'<a{css} data-photo-index="{index}" href="/{escape(image["src"])}" '
-        f'target="_blank" rel="noopener">{photo(image, "hero-photo" if hero else "", lazy=not hero)}</a>'
+        f'target="_blank" rel="noopener"{thumb_attr}>{preview}</a>'
     )
 
 
@@ -151,7 +176,24 @@ def contacts(company, variant):
     )
 
 
-def metadata(company, vehicle, hero):
+def pickup_address(company):
+    pickup = company["pickup"]
+    return f'{pickup["region"]}, г. {pickup["locality"]}, {pickup["street"]}'
+
+
+def email_link(email):
+    return f'<a class="text-link" href="mailto:{escape(email)}">{escape(email)}</a>' if email else ""
+
+
+def booking_contacts(data):
+    company = data["company"]
+    email = email_link(data["legal"]["email"])
+    return (contacts(company, "booking")
+            + f'<p class="pickup-address"><strong>Адрес выдачи автомобилей</strong><br>{escape(pickup_address(company))}</p>'
+            + (f'<p>Электронная почта: {email}</p>' if email else ""))
+
+
+def metadata(company, vehicle, hero, legal):
     base = f'https://{company["domain"]}'
     url = base + (vehicle["path"] if vehicle else "/")
     image = f'{base}/{hero["src"]}'
@@ -177,12 +219,23 @@ def metadata(company, vehicle, hero):
              ]},
         ]
     else:
-        title = f"{brand} — аренда автомобилей в Москве"
-        description = f"{brand} (AutoVau) — каталог автомобилей в аренду в Москве. Фотографии, тарифы, условия аренды и бронирование."
+        title = f"{brand} — аренда автомобилей в Москве и Московской области"
+        description = f"{brand} (AutoVau) — аренда автомобилей в Москве и Московской области. Каталог, тарифы и бронирование. Выдача автомобилей в Балашихе."
         organization_id = base + "/#organization"
+        pickup = company["pickup"]
         graph = [
             {"@type": "Organization", "@id": organization_id, "url": url, "name": brand,
-             "alternateName": company["alternate_names"]},
+             "alternateName": company["alternate_names"], "legalName": legal["operator"],
+             "taxID": legal["inn"], "telephone": company["phone_display"],
+             **({"email": legal["email"]} if legal["email"] else {}),
+             "areaServed": ["Москва", "Московская область"],
+             "location": {"@type": "Place", "name": "Пункт выдачи автомобилей АвтоВау",
+                          "address": {"@type": "PostalAddress", "streetAddress": pickup["street"],
+                                      "addressLocality": pickup["locality"], "addressRegion": pickup["region"],
+                                      "addressCountry": pickup["country"]}},
+             "identifier": {"@type": "PropertyValue", "propertyID": "ОГРНИП", "value": legal["ogrnip"]},
+             "contactPoint": {"@type": "ContactPoint", "contactType": "Связь по аренде",
+                              "telephone": company["phone_display"]}},
             {"@type": "WebSite", "@id": base + "/#website", "url": url, "name": brand,
              "alternateName": company["website_aliases"], "inLanguage": "ru",
              "publisher": {"@id": organization_id}},
@@ -221,7 +274,7 @@ def rental_conditions(groups, vehicle):
     return "".join(output)
 
 
-def vehicle_page(vehicle, data):
+def vehicle_page(vehicle, data, available):
     company = data["company"]
     equipment = []
     for key, label in EQUIPMENT.items():
@@ -239,22 +292,26 @@ def vehicle_page(vehicle, data):
             end = ordered[i + 1]["days"] - 1
             period = days(start) if start == end else f'{start}–{days(end)}'
         tariffs.append(f'<tr><td>{escape(period)}</td><td>{rubles(rate["daily_rub"])} ₽</td></tr>')
-    hero = vehicle["photo"]
+    original = vehicle["photo"]
+    hero = catalog_photo(vehicle)
     photos = list({image["src"]: image for image in vehicle["gallery"]}.values())
-    if not any(image["src"] == hero["src"] for image in photos):
-        photos.insert(0, hero)
+    if not any(image["src"] == original["src"] for image in photos):
+        photos.insert(0, original)
+    featured = "catalog_image" in vehicle
+    if featured:
+        photos = [hero, *(image for image in photos if image["src"] != hero["src"])]
     hero_index = next(i for i, image in enumerate(photos) if image["src"] == hero["src"])
-    gallery = "".join(gallery_link(image, i) for i, image in enumerate(photos))
+    gallery = "".join(gallery_link(image, i, available, featured=featured and i == 0) for i, image in enumerate(photos))
     return render(
         "vehicle", name=escape(vehicle["name"]), status=status(vehicle), features=features(vehicle),
         short_description=escape(vehicle["short_description"]),
         equipment='<ul class="equipment-list">' + "".join(equipment) + "</ul>" if equipment else "",
-        hero_photo=gallery_link(hero, hero_index, hero=True), rental_parameters=rental_parameters(vehicle),
+        hero_photo=gallery_link(hero, hero_index, available, hero=True, featured=featured), rental_parameters=rental_parameters(vehicle),
         share_icon=icon("share"),
         terms=rental_conditions(data["rental_terms"], vehicle),
         common_equipment=inherited_equipment(data), tariff_note=escape(vehicle["tariff_note"]),
         tariffs="".join(tariffs), gallery=gallery,
-        contact_note=escape(vehicle["contact_note"]), contacts=contacts(company, "booking"),
+        contact_note=escape(vehicle["contact_note"]), contacts=booking_contacts(data),
     )
 
 
@@ -277,26 +334,48 @@ def faq(vehicles, terms):
     ) + "</section>"
 
 
-def pages(data):
+def pages(data, available):
     company = data["company"]
+    legal = data["legal"]
+    legal_fields = {key: escape(value) for key, value in legal.items() if isinstance(value, str)}
+    email = email_link(legal.get("email"))
+    pickup = escape(pickup_address(company))
+    legal_footer = render(
+        "legal-footer", operator=legal_fields["operator"], inn=legal_fields["inn"], ogrnip=legal_fields["ogrnip"],
+        pickup_address=pickup, email_row=f"<p>Электронная почта: {email}</p>" if email else "",
+        year=datetime.now(timezone(timedelta(hours=3))).year,
+    )
     vehicles = data["vehicles"]
     hero = data["home_photo"]
     analytics = data.get("analytics", {})
-    counter = analytics.get("counter_id")
-    privacy_url = analytics.get("privacy_url")
+    counter = analytics.get("counter_id") if legal["policy_approved"] else None
+    def analytics_notice(counter):
+        cookie_text = ('<p>С вашего согласия Яндекс Метрика использует cookies и рекламные метки для анализа посещаемости. '
+                       'Вы можете разрешить аналитику или отказаться от неё. Подробнее — в '
+                       '<a class="text-link" href="/privacy.html">политике конфиденциальности</a>.</p>') if counter else (
+            '<p>Необязательная аналитика сейчас выключена. Подробнее — в '
+            '<a class="text-link" href="/privacy.html">политике конфиденциальности</a>.</p>'
+        )
+        cookie_actions = ('<div class="cookie-notice__actions"><button type="button" data-consent="allow">Принять</button>'
+                          '<button type="button" data-consent="deny">Отклонить</button></div>') if counter else (
+            '<div class="cookie-notice__actions"><button type="button" data-consent="dismiss">Закрыть</button></div>'
+        )
+        return render("analytics-consent", cookie_text=cookie_text, cookie_actions=cookie_actions)
     banner = data.get("home_banner")
     cards = "".join(render(
-        "card", path=escape(v["path"]), photo=photo(catalog_photo(v), lazy=True), status=status(v),
+        "card", path=escape(v["path"]), photo=photo(catalog_photo(v), lazy=True, available=available, sizes=CATALOG_SIZES, low=True), status=status(v),
         name=escape(v["name"]), features=features(v), monthly=rubles(monthly(v)).replace(" ", "&nbsp;"),
         arrow=icon("arrow", "details-arrow"),
     ) for v in vehicles)
-    hero_image = photo(banner or hero, "hero-photo hero-banner" if banner else "hero-photo", priority=True)
+    hero_image = photo(banner or hero, "hero-photo hero-banner" if banner else "hero-photo", priority=True,
+                       available=available, sizes=BANNER_SIZES)
     home = render("home", hero_image=hero_image, cards=cards, faq=faq(vehicles, data["rental_terms"]),
-                  common_equipment=inherited_equipment(data), contacts=contacts(company, "booking"))
+                  common_equipment=inherited_equipment(data), contacts=booking_contacts(data))
 
-    def document(body, vehicle=None, missing=False):
+    def document(body, vehicle=None, missing=False, legal_metadata=None):
         v = vehicle
-        page_settings = {"counterId": counter, "vehicle": None}
+        page_counter = None if missing else counter
+        page_settings = {"counterId": page_counter, "vehicle": None}
         if v:
             page_settings["vehicle"] = {key: v[key] for key in ("id", "name", "year", "minimum_days", "deposit")}
             page_settings["vehicle"]["tariffs"] = [
@@ -305,10 +384,10 @@ def pages(data):
         return render(
             "page", body=body, brand=escape(company["name"]),
             page_class="vehicle-page" if v else "home-page", footer_contacts=contacts(company, "footer"),
-            metadata=('<title>Страница не найдена — АвтоВау</title>'
+            metadata=legal_metadata or (('<title>Страница не найдена — АвтоВау</title>'
                       '<meta name="description" content="Вернитесь на главную АвтоВау или откройте каталог автомобилей.">'
                       '<meta name="robots" content="noindex">') if missing
-            else metadata(company, v, v["photo"] if v else hero),
+            else metadata(company, v, v["photo"] if v else hero, legal)),
             dialog_title=f'Связаться с {escape(company["name"])}',
             dialog_model=f'<p id="booking-model" class="booking-dialog__model" hidden>{escape(v["name"])}</p>' if v else "",
             dialog_label="booking-title", booking_dates=render(
@@ -320,14 +399,26 @@ def pages(data):
                 '<link rel="stylesheet" href="/assets/photo-viewer.css">\n  '
                 '<script src="/assets/photo-viewer.js" defer></script>\n  '
             ) if v else "",
-            analytics_settings='<button type="button" class="header-contact" id="analytics-settings">Настройки аналитики</button>' if counter else "",
-            analytics_dialog=render("analytics-consent", privacy_url=escape(privacy_url)) if counter else "",
+            analytics_notice=analytics_notice(page_counter), legal_footer=legal_footer,
             page_settings=json.dumps(page_settings, ensure_ascii=False).replace("<", "\\u003c"),
         ).encode()
 
     output = {"index.html": document(home)}
     for v in vehicles:
-        output[v["path"].lstrip("/") + "index.html"] = document(vehicle_page(v, data), v)
+        output[v["path"].lstrip("/") + "index.html"] = document(vehicle_page(v, data, available), v)
+    phone_url = next(item["url"] for item in company["contacts"] if item["id"] == "phone")
+    for template, title, description in (
+        ("privacy", "Политика обработки персональных данных и конфиденциальности", "Обработка данных посетителей и арендаторов АвтоВау, cookies, права и контакты оператора."),
+        ("requisites", "Реквизиты арендодателя", "Реквизиты предпринимателя АвтоВау, адрес выдачи автомобилей и контакты."),
+    ):
+        path = f"{template}.html"
+        head = (f'<title>{escape(title)} — АвтоВау</title><meta name="description" content="{escape(description)}">'
+                f'<link rel="canonical" href="https://{escape(company["domain"])}/{path}">')
+        body = render(template, **legal_fields, phone_url=escape(phone_url), phone_display=escape(company["phone_display"]),
+                      email_text=email or "Адрес уточняется.", pickup_address=pickup,
+                      draft_notice='' if legal["policy_approved"] else '<p class="policy-notice"><strong>Проект. Ожидает утверждения владельцем.</strong></p>',
+                      analytics_note="" if counter else "В текущей версии сайта счётчик отключён.")
+        output[path] = document(body, legal_metadata=head)
     sitemap = ET.Element("urlset", xmlns="http://www.sitemaps.org/schemas/sitemap/0.9")
     for page in output:
         loc = f'https://{company["domain"]}/' + page.removesuffix("index.html")
@@ -336,12 +427,17 @@ def pages(data):
     output["sitemap.xml"] = ET.tostring(sitemap, encoding="utf-8", xml_declaration=True) + b"\n"
     output["404.html"] = document(render("404"), missing=True)
     assets = Path(__file__).with_name("assets")
-    for name in ("fleet.css", "photo-viewer.css", "photo-viewer.js", "commercial.js", "booking-rules.js"):
+    for name in ("fleet.css", "photo-viewer.css", "photo-viewer.js", "commercial.js", "booking-rules.js", "analytics.js"):
         output[f"assets/{name}"] = (assets / name).read_bytes()
     return output
 
 
 def validate(data, archive):
+    legal = data["legal"]
+    if type(legal["policy_approved"]) is not bool or (legal["policy_approved"] and not legal.get("email")):
+        raise ValueError("Перед утверждением политики подтвердите email оператора")
+    if legal.get("email") and not re.fullmatch(r"[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+", legal["email"]):
+        raise ValueError("Некорректный email оператора")
     analytics = data.get("analytics", {})
     counter = analytics.get("counter_id")
     privacy = analytics.get("privacy_url")
@@ -394,7 +490,8 @@ def validate(data, archive):
     if "home_banner" in data:
         images.append(data["home_banner"])
     for image in images:
-        if not image["src"].startswith("assets/") or image["src"] not in archive.namelist() or not image["alt"].strip():
+        if (not image["src"].startswith("assets/") or image["src"] not in archive.namelist()
+                or image["src"] in NONPUBLIC_ARCHIVE_ENTRIES or not image["alt"].strip()):
             raise ValueError(f'Проверьте фото и его alt: {image["src"]}')
     if archive.read("CNAME").decode().strip() != data["company"]["domain"]:
         raise ValueError("Домен fleet.json должен совпадать с CNAME")
@@ -404,7 +501,7 @@ def build(data, source):
     buffer = BytesIO()
     with ZipFile(BytesIO(source)) as archive, ZipFile(buffer, "w", ZIP_DEFLATED) as output:
         validate(data, archive)
-        generated = pages(data)
+        generated = pages(data, set(archive.namelist()))
         output.comment = archive.comment
 
         def write(name):
@@ -415,7 +512,7 @@ def build(data, source):
         for entry in archive.infolist():
             if entry.filename in generated:
                 write(entry.filename)
-            elif not re.fullmatch(r"cars/[^/]+/index\.html", entry.filename):
+            elif entry.filename not in NONPUBLIC_ARCHIVE_ENTRIES and not re.fullmatch(r"cars/[^/]+/index\.html", entry.filename):
                 output.writestr(entry, archive.read(entry))
         for name in list(generated):
             write(name)

@@ -1,4 +1,5 @@
 import {contactUrl, message, quote, rentalDays, rubles, todayInMoscow} from './booking-rules.js';
+import {setupAnalytics} from './analytics.js';
 
 const page = JSON.parse(document.querySelector('#page-settings').textContent);
 const vehicle = page.vehicle;
@@ -8,59 +9,34 @@ const contactEvents = {
   telegram: 'contact_telegram', whatsapp: 'contact_whatsapp',
   phone: 'contact_phone', avito: 'contact_avito'
 };
-const settings = document.querySelector('#analytics-settings');
-const consentKey = 'autovau.analytics';
-let active = false;
-let consent;
-try { consent = localStorage.getItem(consentKey); } catch { /* Обходиться без хранилища. */ }
+const sendGoal = setupAnalytics(page.counterId, canonical, vehicle);
 
-function sendGoal(name) {
-  if (!active) return;
-  const params = vehicle ? {vehicle_id: vehicle.id} : {};
-  window.ym(page.counterId, 'reachGoal', name, params);
+for (const year of document.querySelectorAll('[data-copy-year]')) {
+  year.textContent = new Intl.DateTimeFormat('ru-RU', {year: 'numeric', timeZone: 'Europe/Moscow'}).format(new Date());
 }
-
-function enableAnalytics() {
-  try {
-    window.ym ||= function () { (window.ym.a ||= []).push(arguments); };
-    window.ym.l = Date.now();
-    window.ym(page.counterId, 'init', {
-      defer: true, clickmap: false, trackLinks: false, webvisor: false,
-      accurateTrackBounce: false, trackHash: false
-    });
-    if (canonical) window.ym(page.counterId, 'hit', canonical, {referer: ''});
-    active = true;
-    if (vehicle) sendGoal('vehicle_view');
-    const tag = document.createElement('script');
-    tag.async = true;
-    tag.src = 'https://mc.yandex.ru/metrika/tag.js';
-    document.head.append(tag);
-  } catch { active = false; }
-}
-
-if (page.counterId && settings) {
-  const controls = document.querySelector('#analytics-consent');
-  function showConsent() { controls.showModal(); }
-  settings.addEventListener('click', showConsent);
-  controls.addEventListener('close', () => {
-    const choice = controls.returnValue;
-    controls.returnValue = '';
-    if (choice !== 'allow' && choice !== 'deny') return;
-    try { localStorage.setItem(consentKey, choice); } catch { /* Только текущая страница. */ }
-    consent = choice;
-    if (choice === 'allow' && !active) enableAnalytics();
-    if (choice === 'deny' && active) {
-      active = false;
-      location.reload();
+for (const button of document.querySelectorAll('button[data-copy]')) {
+  button.hidden = false;
+  button.addEventListener('click', async () => {
+    const value = document.getElementById(button.dataset.copy);
+    const status = document.querySelector('#copy-status');
+    try {
+      await navigator.clipboard.writeText(value.textContent.trim());
+      status.textContent = 'Скопировано.';
+    } catch {
+      const range = document.createRange();
+      range.selectNodeContents(value);
+      value.focus();
+      const selection = window.getSelection();
+      selection.removeAllRanges();
+      selection.addRange(range);
+      status.textContent = 'Номер выделен. Скопируйте его из выделения.';
     }
   });
-  if (consent === 'allow') enableAnalytics();
-  else if (consent !== 'deny') showConsent();
 }
 
 document.addEventListener('click', event => {
   const link = event.target.closest('a[data-contact]');
-  if (link && contactEvents[link.dataset.contact]) sendGoal(contactEvents[link.dataset.contact]);
+  if (link && contactEvents[link.dataset.contact]) sendGoal(contactEvents[link.dataset.contact], true);
 });
 
 for (const link of document.querySelectorAll('a[data-contact="telegram"], a[data-contact="whatsapp"]')) {
@@ -88,7 +64,8 @@ if (dialog && source) {
   let opener;
   let booking = false;
   let outside = false;
-  let lastPrice = '';
+  let lastTrackedDates;
+  const trackedQuotes = new Set();
 
   function refresh(track = false) {
     const assessment = booking ? quote(start.value, end.value, vehicle) : {state: 'empty'};
@@ -114,11 +91,12 @@ if (dialog && source) {
     }
     const body = message(booking ? vehicle : null, start?.value, end?.value, assessment);
     messengers.forEach((link, index) => { link.href = contactUrl(originals[index], body); });
-    if (track) {
-      sendGoal('booking_dates');
+    if (track && (assessment.state === 'priced' || assessment.state === 'unknown')) {
       const pair = start.value + '/' + end.value;
-      if (assessment.state === 'priced' && pair !== lastPrice) sendGoal('booking_quote');
-      lastPrice = assessment.state === 'priced' ? pair : '';
+      if (pair !== lastTrackedDates && sendGoal('booking_dates')) lastTrackedDates = pair;
+      if (assessment.state === 'priced' && !trackedQuotes.has(pair) && sendGoal('booking_quote')) {
+        trackedQuotes.add(pair);
+      }
     }
   }
 
@@ -138,7 +116,7 @@ if (dialog && source) {
       dialog.showModal();
       document.documentElement.classList.add('booking-open');
       close.focus({preventScroll: true});
-      if (booking) sendGoal('booking_open');
+      if (booking) sendGoal('booking_open', true);
     });
   }
   fields?.addEventListener('input', () => refresh(true));
@@ -158,28 +136,36 @@ const share = document.querySelector('#vehicle-share');
 if (share && canonical) {
   const status = document.querySelector('#share-status');
   const manual = document.querySelector('#share-manual');
+  let sharing = false;
   share.hidden = false;
   share.addEventListener('click', async () => {
-    sendGoal('vehicle_share');
+    if (sharing) return;
+    sharing = true;
     status.textContent = '';
     manual.hidden = true;
     try {
       if (navigator.share) {
-        await navigator.share({title: document.title, url: canonical});
-        return;
+        try {
+          await navigator.share({title: document.title, url: canonical});
+          sendGoal('vehicle_share', true);
+          return;
+        } catch (error) {
+          if (error.name === 'AbortError') return;
+        }
       }
-    } catch (error) {
-      if (error.name === 'AbortError') return;
-    }
-    try {
-      await navigator.clipboard.writeText(canonical);
-      status.textContent = 'Ссылка скопирована.';
-    } catch {
-      manual.value = canonical;
-      manual.hidden = false;
-      manual.focus();
-      manual.select();
-      status.textContent = 'Скопируйте выделенную ссылку.';
+      try {
+        await navigator.clipboard.writeText(canonical);
+        sendGoal('vehicle_share', true);
+        status.textContent = 'Ссылка скопирована.';
+      } catch {
+        manual.value = canonical;
+        manual.hidden = false;
+        manual.focus();
+        manual.select();
+        status.textContent = 'Скопируйте выделенную ссылку.';
+      }
+    } finally {
+      sharing = false;
     }
   });
 }

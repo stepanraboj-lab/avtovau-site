@@ -1,11 +1,10 @@
-<dialog id="analytics-consent" class="booking-dialog" aria-labelledby="analytics-title">
-  <div class="booking-dialog__panel">
-    <h2 id="analytics-title">Аналитика сайта</h2>
-    <p>С вашего согласия Яндекс Метрика измеряет посещения и действия на сайте. Бронирование и контакты доступны при любом выборе.</p>
-    <p><a class="text-link" href="$privacy_url">Политика конфиденциальности</a></p>
-    <form method="dialog" class="consent-actions">
-      <button class="header-contact" value="allow">Разрешить аналитику</button>
-      <button class="header-contact" value="deny" autofocus>Отказаться</button>
-    </form>
+<aside id="analytics-consent" class="cookie-notice" aria-labelledby="analytics-title" tabindex="-1" hidden>
+  <div class="wrap cookie-notice__inner">
+    <div>
+      <h2 id="analytics-title">Настройки cookies</h2>
+      $cookie_text
+      <p role="status" hidden></p>
+    </div>
+    $cookie_actions
   </div>
-</dialog>
+</aside>

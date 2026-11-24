@@ -193,6 +193,7 @@ h3 { font-size: 22px; margin-bottom: 12px; }
 .tariff-table small { color: var(--muted); display: block; margin-top: 4px; }
 .gallery a { display: block; border-radius: 16px; overflow: hidden; }
 .gallery img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; background: var(--surface); }
+.hero-photo.gallery-photo--catalog, .gallery img.gallery-photo--catalog { aspect-ratio: 3 / 2; object-fit: contain; }
 .booking-section .contact-options--booking { color: inherit; }
 .booking-section .contact-options__icon { background: #29352f; }
 .booking-section .contact-options__icon:hover { background: #3b4a41; }
@@ -289,3 +290,65 @@ h3 { font-size: 22px; margin-bottom: 12px; }
 #terms .common-equipment h2 { display: flex; align-items: center; font-size: 22px; }
 .booking-parameters { margin: 0 0 10px; font-size: 13px; color: #c3ccc6; }
 @media (max-width: 600px) { .rental-parameters { grid-template-columns: minmax(0, 1fr); } }
+
+.legal-footer {
+  margin-top: 22px;
+  padding-top: 16px;
+  border-top: 1px solid #46514b;
+  color: #c3ccc6;
+  font-size: 13px;
+}
+.legal-footer p { margin: 4px 0; }
+.legal-footer__operator { color: #fff; font-weight: 800; }
+.legal-footer nav { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 14px; margin-block: 6px; }
+.legal-footer nav a, .legal-footer nav button {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  color: inherit;
+  background: transparent;
+  font: inherit;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+.legal-footer nav button[hidden] { display: none; }
+.cookie-notice {
+  background: #1a241f;
+  color: #fff;
+  border-block: 1px solid #46514b;
+}
+.cookie-notice__inner { display: flex; align-items: center; gap: 12px 20px; justify-content: space-between; padding-block: 12px; }
+.cookie-notice h2 { margin: 0 0 4px; font-size: 17px; }
+.cookie-notice p { max-width: 72ch; margin: 0; font-size: 14px; }
+.cookie-notice__actions { display: flex; flex: none; flex-wrap: wrap; gap: 8px; }
+.cookie-notice__actions button, .legal-copy {
+  min-height: 44px;
+  padding: 6px 12px;
+  border: 1px solid #a2b18c;
+  border-radius: 99px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+.cookie-notice__actions button:hover, .legal-copy:hover { box-shadow: inset 0 0 0 1px currentColor; }
+.legal-page { max-width: 820px; overflow-wrap: anywhere; }
+.legal-page h1 { font-size: clamp(29px, 5vw, 52px); }
+.legal-page h2 { margin-bottom: 8px; font-size: clamp(20px, 3vw, 26px); }
+.legal-page section { padding-top: 18px; border-top: 1px solid var(--line); }
+.policy-notice { padding: 12px 16px; border-radius: 12px; background: #f3d7a7; color: #412a12; }
+.legal-details { display: grid; grid-template-columns: minmax(130px, 1fr) 2fr; gap: 10px 18px; }
+.legal-details dt { font-weight: 800; }
+.legal-details dd { margin: 0; }
+.legal-copy { margin-inline-start: 4px; font-size: 13px; }
+.legal-details span[tabindex] { user-select: text; }
+.booking-legal, .rental-disclaimer { font-size: 13px; color: #c3ccc6; margin: 8px 0; }
+@media (max-width: 600px) {
+  .cookie-notice__inner { flex-direction: column; align-items: flex-start; }
+  .legal-details { grid-template-columns: minmax(0, 1fr); gap: 4px; }
+  .legal-details dd { margin-bottom: 8px; }
+}
