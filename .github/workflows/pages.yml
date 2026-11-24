@@ -4,25 +4,32 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      diagnostics_only:
+        description: "Проверить архив и загрузить артефакт без публикации"
+        type: boolean
+        default: false
 
-permissions:
-  contents: read
-  pages: write
-  id-token: write
+permissions: {}
 
 concurrency:
   group: github-pages
   cancel-in-progress: false
 
 jobs:
-  deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+  build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: read
+    env:
+      ARTIFACT_NAME: github-pages-${{ github.run_attempt }}
+    outputs:
+      artifact_name: ${{ env.ARTIFACT_NAME }}
+      artifact_id: ${{ steps.upload.outputs.artifact_id }}
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: Extract and validate the website ZIP
         run: |
           unzip -tq site.zip
@@ -74,11 +81,55 @@ jobs:
             exit 1
           fi
       - name: Configure Pages
-        uses: actions/configure-pages@v5
+        uses: actions/configure-pages@v6
       - name: Upload site
-        uses: actions/upload-pages-artifact@v3
+        id: upload
+        uses: actions/upload-pages-artifact@v5
         with:
+          name: ${{ env.ARTIFACT_NAME }}
           path: public
+          include-hidden-files: true
+
+  deploy:
+    needs: build
+    if: github.ref == 'refs/heads/main' && !inputs.diagnostics_only
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Wait for the uploaded artifact to appear in Actions
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ARTIFACT_NAME: ${{ needs.build.outputs.artifact_name }}
+          ARTIFACT_ID: ${{ needs.build.outputs.artifact_id }}
+        run: |
+          if [[ -z "$ARTIFACT_NAME" || ! "$ARTIFACT_ID" =~ ^[0-9]+$ ]]; then
+            echo "::error::The build did not return an artifact name and ID."
+            exit 1
+          fi
+
+          endpoint="repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/artifacts?name=$ARTIFACT_NAME"
+          for attempt in {1..7}; do
+            if timeout 10s gh api "$endpoint" |
+              jq -e --arg name "$ARTIFACT_NAME" --arg id "$ARTIFACT_ID" \
+                'any(.artifacts[]; .name == $name and (.id | tostring) == $id and .expired == false)' >/dev/null; then
+              echo "Artifact $ARTIFACT_NAME (ID $ARTIFACT_ID) is visible in run $GITHUB_RUN_ID."
+              exit 0
+            fi
+            echo "Artifact $ARTIFACT_NAME (ID $ARTIFACT_ID) not confirmed in run $GITHUB_RUN_ID ($attempt/7)."
+            if [[ "$attempt" -lt 7 ]]; then sleep 5; fi
+          done
+
+          echo "::error::The artifact uploaded by build was not visible in the Actions API for this run."
+          exit 1
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
+        with:
+          artifact_name: ${{ needs.build.outputs.artifact_name }}
