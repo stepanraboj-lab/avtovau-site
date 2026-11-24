@@ -77,22 +77,46 @@ def monthly(vehicle):
     return next(rate["daily_rub"] for rate in vehicle["tariffs"] if rate["days"] == 30)
 
 
-def photo(image, css="", lazy=False, priority=False):
+CATALOG_WIDTHS = (360, 480, 640, 800, 960)
+GALLERY_WIDTHS = (320, 560, 800, 1120)
+HERO_SIZES = "(max-width: 720px) calc(100vw - 32px), (max-width: 1152px) calc(50vw - 16px - clamp(12px, 2vw, 24px)), 536px"
+BANNER_SIZES = "(max-width: 720px) calc(100vw - 32px), (max-width: 899px) calc(48vw - 16px), (max-width: 1152px) calc(52.8vw - 17.6px), 590px"
+CATALOG_SIZES = "(max-width: 720px) calc(100vw - 34px), (max-width: 1152px) calc(50vw - 27px), 548px"
+GALLERY_SIZES = "(max-width: 1152px) calc(50vw - 23px), 553px"
+NONPUBLIC_ARCHIVE_ENTRIES = {
+    "assets/IMG_7596.jpeg", "assets/IMG_7599.jpeg", "assets/vw-polo-2013.jpeg",
+    "assets/booking-modal.js", "README.txt", "GITHUB_PAGES_README.txt",
+}
+
+
+def responsive_path(source, width):
+    return f"assets/responsive/{source.removeprefix('assets/')}-{width}.webp"
+
+
+def photo(image, css="", lazy=False, priority=False, *, available=(), sizes="", widths=CATALOG_WIDTHS, low=False):
     loading = ' loading="lazy"' if lazy else ""
-    fetch = ' fetchpriority="high"' if priority else ""
-    return f'<img class="{css}" src="/{escape(image["src"])}" alt="{escape(image["alt"])}"{loading}{fetch}>'
+    fetch = ' fetchpriority="high"' if priority else (' fetchpriority="low"' if low else "")
+    paths = [(responsive_path(image["src"], width), width) for width in widths]
+    candidates = ", ".join(f"/{path} {width}w" for path, width in paths if path in available)
+    responsive = f' srcset="{escape(candidates)}" sizes="{sizes}"' if candidates else ""
+    return f'<img class="{css}" src="/{escape(image["src"])}" alt="{escape(image["alt"])}"{loading}{fetch}{responsive}>'
 
 
 def catalog_photo(vehicle):
     return vehicle.get("catalog_image", vehicle["photo"])
 
 
-def gallery_link(image, index, hero=False, featured=False):
+def gallery_link(image, index, available, hero=False, featured=False):
     css = ' class="hero-photo-link"' if hero else ""
     image_css = " ".join(name for name in ("hero-photo" if hero else "", "gallery-photo--catalog" if featured else "") if name)
+    thumb = responsive_path(image["src"], 224)
+    thumb_attr = f' data-thumbnail="/{escape(thumb)}"' if thumb in available else ""
+    preview = photo(image, image_css, lazy=not hero, available=available,
+                    sizes=HERO_SIZES if hero else GALLERY_SIZES,
+                    widths=CATALOG_WIDTHS if hero or featured else GALLERY_WIDTHS)
     return (
         f'<a{css} data-photo-index="{index}" href="/{escape(image["src"])}" '
-        f'target="_blank" rel="noopener">{photo(image, image_css, lazy=not hero)}</a>'
+        f'target="_blank" rel="noopener"{thumb_attr}>{preview}</a>'
     )
 
 
@@ -250,7 +274,7 @@ def rental_conditions(groups, vehicle):
     return "".join(output)
 
 
-def vehicle_page(vehicle, data):
+def vehicle_page(vehicle, data, available):
     company = data["company"]
     equipment = []
     for key, label in EQUIPMENT.items():
@@ -277,12 +301,12 @@ def vehicle_page(vehicle, data):
     if featured:
         photos = [hero, *(image for image in photos if image["src"] != hero["src"])]
     hero_index = next(i for i, image in enumerate(photos) if image["src"] == hero["src"])
-    gallery = "".join(gallery_link(image, i, featured=featured and i == 0) for i, image in enumerate(photos))
+    gallery = "".join(gallery_link(image, i, available, featured=featured and i == 0) for i, image in enumerate(photos))
     return render(
         "vehicle", name=escape(vehicle["name"]), status=status(vehicle), features=features(vehicle),
         short_description=escape(vehicle["short_description"]),
         equipment='<ul class="equipment-list">' + "".join(equipment) + "</ul>" if equipment else "",
-        hero_photo=gallery_link(hero, hero_index, hero=True, featured=featured), rental_parameters=rental_parameters(vehicle),
+        hero_photo=gallery_link(hero, hero_index, available, hero=True, featured=featured), rental_parameters=rental_parameters(vehicle),
         share_icon=icon("share"),
         terms=rental_conditions(data["rental_terms"], vehicle),
         common_equipment=inherited_equipment(data), tariff_note=escape(vehicle["tariff_note"]),
@@ -310,7 +334,7 @@ def faq(vehicles, terms):
     ) + "</section>"
 
 
-def pages(data):
+def pages(data, available):
     company = data["company"]
     legal = data["legal"]
     legal_fields = {key: escape(value) for key, value in legal.items() if isinstance(value, str)}
@@ -338,11 +362,12 @@ def pages(data):
     analytics_notice = render("analytics-consent", cookie_text=cookie_text, cookie_actions=cookie_actions)
     banner = data.get("home_banner")
     cards = "".join(render(
-        "card", path=escape(v["path"]), photo=photo(catalog_photo(v), lazy=True), status=status(v),
+        "card", path=escape(v["path"]), photo=photo(catalog_photo(v), lazy=True, available=available, sizes=CATALOG_SIZES, low=True), status=status(v),
         name=escape(v["name"]), features=features(v), monthly=rubles(monthly(v)).replace(" ", "&nbsp;"),
         arrow=icon("arrow", "details-arrow"),
     ) for v in vehicles)
-    hero_image = photo(banner or hero, "hero-photo hero-banner" if banner else "hero-photo", priority=True)
+    hero_image = photo(banner or hero, "hero-photo hero-banner" if banner else "hero-photo", priority=True,
+                       available=available, sizes=BANNER_SIZES)
     home = render("home", hero_image=hero_image, cards=cards, faq=faq(vehicles, data["rental_terms"]),
                   common_equipment=inherited_equipment(data), contacts=booking_contacts(data))
 
@@ -378,7 +403,7 @@ def pages(data):
 
     output = {"index.html": document(home)}
     for v in vehicles:
-        output[v["path"].lstrip("/") + "index.html"] = document(vehicle_page(v, data), v)
+        output[v["path"].lstrip("/") + "index.html"] = document(vehicle_page(v, data, available), v)
     phone_url = next(item["url"] for item in company["contacts"] if item["id"] == "phone")
     for template, title, description in (
         ("privacy", "Политика обработки персональных данных и конфиденциальности", "Обработка данных посетителей и арендаторов АвтоВау, cookies, права и контакты оператора."),
@@ -463,7 +488,8 @@ def validate(data, archive):
     if "home_banner" in data:
         images.append(data["home_banner"])
     for image in images:
-        if not image["src"].startswith("assets/") or image["src"] not in archive.namelist() or not image["alt"].strip():
+        if (not image["src"].startswith("assets/") or image["src"] not in archive.namelist()
+                or image["src"] in NONPUBLIC_ARCHIVE_ENTRIES or not image["alt"].strip()):
             raise ValueError(f'Проверьте фото и его alt: {image["src"]}')
     if archive.read("CNAME").decode().strip() != data["company"]["domain"]:
         raise ValueError("Домен fleet.json должен совпадать с CNAME")
@@ -473,7 +499,7 @@ def build(data, source):
     buffer = BytesIO()
     with ZipFile(BytesIO(source)) as archive, ZipFile(buffer, "w", ZIP_DEFLATED) as output:
         validate(data, archive)
-        generated = pages(data)
+        generated = pages(data, set(archive.namelist()))
         output.comment = archive.comment
 
         def write(name):
@@ -484,7 +510,7 @@ def build(data, source):
         for entry in archive.infolist():
             if entry.filename in generated:
                 write(entry.filename)
-            elif not re.fullmatch(r"cars/[^/]+/index\.html", entry.filename):
+            elif entry.filename not in NONPUBLIC_ARCHIVE_ENTRIES and not re.fullmatch(r"cars/[^/]+/index\.html", entry.filename):
                 output.writestr(entry, archive.read(entry))
         for name in list(generated):
             write(name)

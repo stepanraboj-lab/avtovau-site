@@ -59,7 +59,7 @@
     thumbnails = photos.map((photo, i) => {
       const button = document.createElement('button');
       const thumb = new Image();
-      thumb.src = photo.href;
+      thumb.src = photo.dataset.thumbnail || photo.href;
       thumb.alt = '';
       thumb.loading = 'lazy';
       thumb.draggable = false;

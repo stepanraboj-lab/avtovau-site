@@ -11,7 +11,7 @@ from zipfile import ZipFile
 import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from build import ROOT, build, days, rubles, validate
+from build import ROOT, NONPUBLIC_ARCHIVE_ENTRIES, build, days, rubles, validate
 
 
 class Page(HTMLParser):
@@ -29,7 +29,10 @@ class Page(HTMLParser):
             self.ids.add(props["id"])
         if tag == "link" and props.get("rel") == "canonical":
             self.canonical.append(props["href"])
-        self.links.extend(props[key] for key in ("href", "src") if key in props)
+        self.links.extend(props[key] for key in ("href", "src", "data-thumbnail") if key in props)
+        if "srcset" in props:
+            assert props.get("sizes"), "Для srcset нужен sizes"
+            self.links.extend(candidate.strip().split()[0] for candidate in props["srcset"].split(","))
 
 
 data = json.loads((ROOT / "fleet.json").read_text(encoding="utf-8"))
@@ -41,6 +44,7 @@ with ZipFile(ROOT / "site.zip") as archive:
     assert archive.testzip() is None
     names = set(archive.namelist())
     assert len(names) == len(archive.namelist())
+    assert names.isdisjoint(NONPUBLIC_ARCHIVE_ENTRIES)
     assert {"404.html", "CNAME", ".nojekyll", "sitemap.xml", "robots.txt", "favicon.png"} <= names
     sitemap = ET.fromstring(archive.read("sitemap.xml"))
     locations = [loc.text for loc in sitemap.findall(".//{http://www.sitemaps.org/schemas/sitemap/0.9}loc")]
