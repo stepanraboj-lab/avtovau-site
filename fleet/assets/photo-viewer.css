@@ -1,0 +1,195 @@
+.hero-photo-link {
+  display: block;
+  min-width: 0;
+  border-radius: var(--radius);
+}
+
+a[data-photo-index] { cursor: zoom-in; }
+
+.vehicle-page {
+  padding-inline: env(safe-area-inset-left, 0px) env(safe-area-inset-right, 0px);
+  padding-block: env(safe-area-inset-top, 0px) env(safe-area-inset-bottom, 0px);
+}
+
+html.photo-viewer-open {
+  overflow: hidden;
+  overscroll-behavior: none;
+  scroll-behavior: auto;
+}
+
+html.photo-viewer-open body {
+  position: fixed;
+  top: var(--photo-viewer-scroll-top);
+  left: var(--photo-viewer-scroll-left);
+  width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.photo-viewer {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  height: 100dvh;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  background: transparent;
+  color: #fff;
+}
+
+.photo-viewer::backdrop { background: #0a100de8; }
+
+.photo-viewer[open] .photo-viewer__layout,
+.photo-viewer[open]::backdrop { animation: photo-viewer-in 160ms ease-out; }
+
+@keyframes photo-viewer-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.photo-viewer__layout {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  gap: 8px;
+  height: 100%;
+  padding: max(8px, env(safe-area-inset-top)) max(8px, env(safe-area-inset-right))
+    max(8px, env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left));
+}
+
+.photo-viewer__bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.photo-viewer__counter {
+  margin-right: auto;
+  padding: 0 8px;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.photo-viewer button {
+  display: inline-grid;
+  place-items: center;
+  box-sizing: border-box;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 10px;
+  border: 1px solid #ffffff45;
+  border-radius: 99px;
+  background: #111815e8;
+  color: #fff;
+  font: inherit;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.photo-viewer button:hover,
+.photo-viewer button:focus-visible {
+  border-color: var(--lime);
+  outline-color: var(--lime);
+}
+
+.photo-viewer button[hidden] { display: none; }
+.photo-viewer__bar .photo-viewer__reset { font-size: 13px; }
+
+.photo-viewer button svg {
+  width: 22px;
+  height: 22px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.photo-viewer__main {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+}
+
+.photo-viewer__stage {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  touch-action: none;
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.photo-viewer__image {
+  flex: none;
+  display: block;
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  cursor: zoom-in;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.photo-viewer__image[hidden] { display: none; }
+.photo-viewer__image.is-zoomed { cursor: grab; }
+.photo-viewer__image.is-zoomed:active { cursor: grabbing; }
+.photo-viewer__error { margin: 0; padding: 12px; }
+
+.photo-viewer__previous,
+.photo-viewer__next {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.photo-viewer__previous { left: 3px; }
+.photo-viewer__next { right: 3px; }
+
+.photo-viewer__thumbs { display: none; }
+
+@media (min-width: 768px) and (hover: hover) and (pointer: fine) {
+  .photo-viewer__thumbs {
+    display: flex;
+    justify-self: center;
+    gap: 8px;
+    max-width: 100%;
+    padding: 4px;
+    overflow-x: auto;
+    scrollbar-width: thin;
+  }
+
+  .photo-viewer .photo-viewer__thumbnail {
+    flex: 0 0 66px;
+    height: 52px;
+    padding: 0;
+    border-width: 2px;
+    border-radius: 10px;
+  }
+
+  .photo-viewer__thumbnail img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 8px;
+  }
+
+  .photo-viewer__thumbnail[aria-current="true"] { border-color: var(--lime); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .photo-viewer[open] .photo-viewer__layout,
+  .photo-viewer[open]::backdrop { animation: none; }
+}
