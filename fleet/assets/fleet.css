@@ -86,7 +86,7 @@ h3 { font-size: 22px; margin-bottom: 12px; }
   border-radius: var(--radius);
 }
 .catalog-photo { position: relative; }
-.catalog-photo img { width: 100%; height: clamp(210px, 26vw, 290px); object-fit: cover; }
+.catalog-photo img { width: 100%; height: auto; aspect-ratio: 3 / 2; object-fit: contain; }
 .catalog-photo .availability { position: absolute; top: 16px; left: 16px; }
 .availability {
   display: inline-block;

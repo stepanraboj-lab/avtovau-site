@@ -158,7 +158,11 @@
         }
       ],
       "brand": "Peugeot",
-      "model": "308 SW"
+      "model": "308 SW",
+      "catalog_image": {
+        "src": "assets/catalog/peugeot-308-sw.webp",
+        "alt": "Peugeot 308 SW, вид спереди"
+      }
     },
     {
       "id": "vw-polo-2013",
@@ -287,7 +291,11 @@
         }
       ],
       "brand": "Volkswagen",
-      "model": "Polo"
+      "model": "Polo",
+      "catalog_image": {
+        "src": "assets/catalog/vw-polo.webp",
+        "alt": "Volkswagen Polo, вид спереди"
+      }
     },
     {
       "id": "renault-logan",
@@ -437,7 +445,11 @@
       ],
       "brand": "Renault",
       "model": "Logan",
-      "rental_location": "в Балашихе"
+      "rental_location": "в Балашихе",
+      "catalog_image": {
+        "src": "assets/catalog/renault-logan.webp",
+        "alt": "Renault Logan, вид спереди"
+      }
     },
     {
       "id": "kia-rio",
@@ -584,7 +596,11 @@
       ],
       "brand": "Kia",
       "model": "Rio",
-      "rental_location": "в Балашихе"
+      "rental_location": "в Балашихе",
+      "catalog_image": {
+        "src": "assets/catalog/kia-rio.webp",
+        "alt": "Kia Rio, вид спереди"
+      }
     }
   ],
   "home_photo": {
