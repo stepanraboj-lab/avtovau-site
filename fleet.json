@@ -485,8 +485,8 @@
     "alt": "АвтоВау — аренда автомобилей в Москве"
   },
   "analytics": {
-    "counter_id": null,
-    "privacy_url": null
+    "counter_id": 114645808,
+    "privacy_url": "/privacy.html"
   },
   "rental_terms": [
     {
@@ -545,5 +545,17 @@
         "Фотофиксация повреждений."
       ]
     }
-  ]
+  ],
+  "legal": {
+    "operator": "Индивидуальный предприниматель Рябой Степан Васильевич",
+    "inn": "502766789981",
+    "ogrnip": "322508100636911",
+    "address": "г. Москва, ул. Снайперская, д. 8Б",
+    "email": null,
+    "registry_number": "77-26-552848",
+    "registry_notification": "05.05.2026",
+    "registry_order": "приказ № 261 от 19.05.2026",
+    "bank_card": "https://i.tochka.com/bank/myprofile/Ryaboy",
+    "policy_approved": false
+  }
 }

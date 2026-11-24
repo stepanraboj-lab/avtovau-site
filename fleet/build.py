@@ -1,7 +1,7 @@
 """Собирает статический сайт из fleet.json, шаблонов и исходных ресурсов site.zip."""
 
 import argparse
-from datetime import date
+from datetime import date, datetime, timedelta, timezone
 from html import escape
 from io import BytesIO
 import json
@@ -151,7 +151,7 @@ def contacts(company, variant):
     )
 
 
-def metadata(company, vehicle, hero):
+def metadata(company, vehicle, hero, legal):
     base = f'https://{company["domain"]}'
     url = base + (vehicle["path"] if vehicle else "/")
     image = f'{base}/{hero["src"]}'
@@ -182,7 +182,11 @@ def metadata(company, vehicle, hero):
         organization_id = base + "/#organization"
         graph = [
             {"@type": "Organization", "@id": organization_id, "url": url, "name": brand,
-             "alternateName": company["alternate_names"]},
+             "alternateName": company["alternate_names"], "legalName": legal["operator"],
+             "taxID": legal["inn"], "telephone": company["phone_display"],
+             "identifier": {"@type": "PropertyValue", "propertyID": "ОГРНИП", "value": legal["ogrnip"]},
+             "contactPoint": {"@type": "ContactPoint", "contactType": "Связь по аренде",
+                              "telephone": company["phone_display"]}},
             {"@type": "WebSite", "@id": base + "/#website", "url": url, "name": brand,
              "alternateName": company["website_aliases"], "inLanguage": "ru",
              "publisher": {"@id": organization_id}},
@@ -279,11 +283,30 @@ def faq(vehicles, terms):
 
 def pages(data):
     company = data["company"]
+    legal = data["legal"]
+    legal_fields = {key: escape(value) for key, value in legal.items() if isinstance(value, str)}
+    email = legal.get("email")
+    email_link = f'<a class="text-link" href="mailto:{escape(email)}">{escape(email)}</a>' if email else ""
+    legal_footer = render(
+        "legal-footer", operator=legal_fields["operator"], inn=legal_fields["inn"], ogrnip=legal_fields["ogrnip"],
+        address=legal_fields["address"], email_row=f"<p>{email_link}</p>" if email_link else "",
+        year=datetime.now(timezone(timedelta(hours=3))).year,
+    )
     vehicles = data["vehicles"]
     hero = data["home_photo"]
     analytics = data.get("analytics", {})
-    counter = analytics.get("counter_id")
-    privacy_url = analytics.get("privacy_url")
+    counter = analytics.get("counter_id") if legal["policy_approved"] else None
+    cookie_text = ('<p>Мы используем cookies и Яндекс Метрику для анализа посещаемости и улучшения работы сайта. '
+                   'Вы можете разрешить аналитику или отказаться от неё. Подробнее — в '
+                   '<a class="text-link" href="/privacy.html">политике конфиденциальности</a>.</p>') if counter else (
+        '<p>Необязательная аналитика сейчас выключена. Подробнее — в '
+        '<a class="text-link" href="/privacy.html">политике конфиденциальности</a>.</p>'
+    )
+    cookie_actions = ('<div class="cookie-notice__actions"><button type="button" data-consent="allow">Принять</button>'
+                      '<button type="button" data-consent="deny">Отклонить</button></div>') if counter else (
+        '<div class="cookie-notice__actions"><button type="button" data-consent="dismiss">Закрыть</button></div>'
+    )
+    analytics_notice = render("analytics-consent", cookie_text=cookie_text, cookie_actions=cookie_actions)
     banner = data.get("home_banner")
     cards = "".join(render(
         "card", path=escape(v["path"]), photo=photo(catalog_photo(v), lazy=True), status=status(v),
@@ -294,7 +317,7 @@ def pages(data):
     home = render("home", hero_image=hero_image, cards=cards, faq=faq(vehicles, data["rental_terms"]),
                   common_equipment=inherited_equipment(data), contacts=contacts(company, "booking"))
 
-    def document(body, vehicle=None, missing=False):
+    def document(body, vehicle=None, missing=False, legal_metadata=None):
         v = vehicle
         page_settings = {"counterId": counter, "vehicle": None}
         if v:
@@ -305,10 +328,10 @@ def pages(data):
         return render(
             "page", body=body, brand=escape(company["name"]),
             page_class="vehicle-page" if v else "home-page", footer_contacts=contacts(company, "footer"),
-            metadata=('<title>Страница не найдена — АвтоВау</title>'
+            metadata=legal_metadata or (('<title>Страница не найдена — АвтоВау</title>'
                       '<meta name="description" content="Вернитесь на главную АвтоВау или откройте каталог автомобилей.">'
                       '<meta name="robots" content="noindex">') if missing
-            else metadata(company, v, v["photo"] if v else hero),
+            else metadata(company, v, v["photo"] if v else hero, legal)),
             dialog_title=f'Связаться с {escape(company["name"])}',
             dialog_model=f'<p id="booking-model" class="booking-dialog__model" hidden>{escape(v["name"])}</p>' if v else "",
             dialog_label="booking-title", booking_dates=render(
@@ -320,14 +343,26 @@ def pages(data):
                 '<link rel="stylesheet" href="/assets/photo-viewer.css">\n  '
                 '<script src="/assets/photo-viewer.js" defer></script>\n  '
             ) if v else "",
-            analytics_settings='<button type="button" class="header-contact" id="analytics-settings">Настройки аналитики</button>' if counter else "",
-            analytics_dialog=render("analytics-consent", privacy_url=escape(privacy_url)) if counter else "",
+            analytics_notice=analytics_notice, legal_footer=legal_footer,
             page_settings=json.dumps(page_settings, ensure_ascii=False).replace("<", "\\u003c"),
         ).encode()
 
     output = {"index.html": document(home)}
     for v in vehicles:
         output[v["path"].lstrip("/") + "index.html"] = document(vehicle_page(v, data), v)
+    phone_url = next(item["url"] for item in company["contacts"] if item["id"] == "phone")
+    for template, title, description in (
+        ("privacy", "Политика обработки персональных данных и конфиденциальности", "Обработка данных посетителей и арендаторов АвтоВау, cookies, права и контакты оператора."),
+        ("requisites", "Реквизиты арендодателя", "Реквизиты, контактный адрес и банковская визитка предпринимателя АвтоВау."),
+    ):
+        path = f"{template}.html"
+        head = (f'<title>{escape(title)} — АвтоВау</title><meta name="description" content="{escape(description)}">'
+                f'<link rel="canonical" href="https://{escape(company["domain"])}/{path}">')
+        body = render(template, **legal_fields, phone_url=escape(phone_url), phone_display=escape(company["phone_display"]),
+                      email_text=email_link or "Адрес уточняется.",
+                      draft_notice='' if legal["policy_approved"] else '<p class="policy-notice"><strong>Проект. Ожидает утверждения владельцем.</strong></p>',
+                      analytics_note="" if counter else "В текущей версии сайта счётчик отключён.")
+        output[path] = document(body, legal_metadata=head)
     sitemap = ET.Element("urlset", xmlns="http://www.sitemaps.org/schemas/sitemap/0.9")
     for page in output:
         loc = f'https://{company["domain"]}/' + page.removesuffix("index.html")
@@ -342,6 +377,11 @@ def pages(data):
 
 
 def validate(data, archive):
+    legal = data["legal"]
+    if type(legal["policy_approved"]) is not bool or (legal["policy_approved"] and not legal.get("email")):
+        raise ValueError("Перед утверждением политики подтвердите email оператора")
+    if legal.get("email") and not re.fullmatch(r"[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+", legal["email"]):
+        raise ValueError("Некорректный email оператора")
     analytics = data.get("analytics", {})
     counter = analytics.get("counter_id")
     privacy = analytics.get("privacy_url")

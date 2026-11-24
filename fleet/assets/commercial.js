@@ -9,9 +9,10 @@ const contactEvents = {
   phone: 'contact_phone', avito: 'contact_avito'
 };
 const settings = document.querySelector('#analytics-settings');
-const consentKey = 'autovau.analytics';
+const consentKey = 'autovau.analytics.v2';
 let active = false;
 let consent;
+let analyticsScript;
 try { consent = localStorage.getItem(consentKey); } catch { /* Обходиться без хранилища. */ }
 
 function sendGoal(name) {
@@ -31,31 +32,99 @@ function enableAnalytics() {
     if (canonical) window.ym(page.counterId, 'hit', canonical, {referer: ''});
     active = true;
     if (vehicle) sendGoal('vehicle_view');
-    const tag = document.createElement('script');
-    tag.async = true;
-    tag.src = 'https://mc.yandex.ru/metrika/tag.js';
-    document.head.append(tag);
+    analyticsScript = document.createElement('script');
+    analyticsScript.async = true;
+    analyticsScript.src = 'https://mc.yandex.ru/metrika/tag.js';
+    document.head.append(analyticsScript);
   } catch { active = false; }
 }
 
-if (page.counterId && settings) {
-  const controls = document.querySelector('#analytics-consent');
-  function showConsent() { controls.showModal(); }
-  settings.addEventListener('click', showConsent);
-  controls.addEventListener('close', () => {
-    const choice = controls.returnValue;
-    controls.returnValue = '';
-    if (choice !== 'allow' && choice !== 'deny') return;
-    try { localStorage.setItem(consentKey, choice); } catch { /* Только текущая страница. */ }
+function clearAnalyticsCookies() {
+  const siteHost = canonical ? new URL(canonical).hostname : location.hostname;
+  const domains = ['', location.hostname, siteHost].filter((host, i, values) =>
+    values.indexOf(host) === i && (!host || location.hostname === host || location.hostname.endsWith('.' + host))
+  );
+  for (const entry of document.cookie.split(';')) {
+    const name = entry.trim().split('=')[0];
+    if (!/^_ym_[a-z0-9_]+$/i.test(name)) continue;
+    for (const domain of domains) {
+      document.cookie = name + '=; Max-Age=0; Path=/' + (domain ? '; Domain=' + domain : '');
+    }
+  }
+}
+
+const notice = document.querySelector('#analytics-consent');
+if (notice && settings) {
+  settings.hidden = false;
+  let openedFromFooter = false;
+  function showNotice() {
+    notice.hidden = false;
+    settings.setAttribute('aria-expanded', 'true');
+  }
+  function hideNotice() {
+    notice.hidden = true;
+    settings.setAttribute('aria-expanded', 'false');
+    if (openedFromFooter) settings.focus();
+    openedFromFooter = false;
+  }
+  function revoke() {
+    const wasActive = active;
+    active = false;
+    analyticsScript?.remove();
+    clearAnalyticsCookies();
+    if (wasActive) location.reload();
+  }
+  settings.addEventListener('click', () => {
+    if (openedFromFooter && !notice.hidden) {
+      hideNotice();
+      return;
+    }
+    openedFromFooter = true;
+    settings.closest('footer').before(notice);
+    showNotice();
+    notice.focus();
+  });
+  notice.addEventListener('click', event => {
+    const choice = event.target.closest('button[data-consent]')?.dataset.consent;
+    if (choice === 'dismiss') hideNotice();
+    if (!page.counterId || (choice !== 'allow' && choice !== 'deny')) return;
+    try { localStorage.setItem(consentKey, choice); } catch { /* Согласие действует только в текущей вкладке. */ }
     consent = choice;
+    hideNotice();
     if (choice === 'allow' && !active) enableAnalytics();
-    if (choice === 'deny' && active) {
-      active = false;
-      location.reload();
+    if (choice === 'deny') revoke();
+  });
+  if (page.counterId && consent === 'allow') enableAnalytics();
+  else if (consent === 'deny') clearAnalyticsCookies();
+  else if (page.counterId) showNotice();
+
+  window.addEventListener('storage', event => {
+    if (event.key !== consentKey || event.newValue === 'allow') return;
+    revoke();
+  });
+}
+
+for (const year of document.querySelectorAll('[data-copy-year]')) {
+  year.textContent = new Intl.DateTimeFormat('ru-RU', {year: 'numeric', timeZone: 'Europe/Moscow'}).format(new Date());
+}
+for (const button of document.querySelectorAll('button[data-copy]')) {
+  button.hidden = false;
+  button.addEventListener('click', async () => {
+    const value = document.getElementById(button.dataset.copy);
+    const status = document.querySelector('#copy-status');
+    try {
+      await navigator.clipboard.writeText(value.textContent.trim());
+      status.textContent = 'Скопировано.';
+    } catch {
+      const range = document.createRange();
+      range.selectNodeContents(value);
+      value.focus();
+      const selection = window.getSelection();
+      selection.removeAllRanges();
+      selection.addRange(range);
+      status.textContent = 'Номер выделен. Скопируйте его из выделения.';
     }
   });
-  if (consent === 'allow') enableAnalytics();
-  else if (consent !== 'deny') showConsent();
 }
 
 document.addEventListener('click', event => {

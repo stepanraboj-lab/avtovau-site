@@ -36,7 +36,7 @@ data = json.loads((ROOT / "fleet.json").read_text(encoding="utf-8"))
 source = (ROOT / "site.zip").read_bytes()
 assert build(data, source) == source, "Архив не соответствует сборке"
 base = f'https://{data["company"]["domain"]}'
-routes = {"/", *(v["path"] for v in data["vehicles"])}
+routes = {"/", "/privacy.html", "/requisites.html", *(v["path"] for v in data["vehicles"])}
 with ZipFile(ROOT / "site.zip") as archive:
     assert archive.testzip() is None
     names = set(archive.namelist())
@@ -46,8 +46,19 @@ with ZipFile(ROOT / "site.zip") as archive:
     locations = [loc.text for loc in sitemap.findall(".//{http://www.sitemaps.org/schemas/sitemap/0.9}loc")]
     assert set(locations) == {base + route for route in routes} and len(locations) == len(routes)
     assert base + "/sitemap.xml" in archive.read("robots.txt").decode()
-    pages = {route: Page(archive.read(route.lstrip("/") + "index.html").decode()) for route in routes}
+    pages = {route: Page(archive.read(route.lstrip("/") + ("index.html" if route.endswith("/") else "")).decode()) for route in routes}
     pages["/404.html"] = Page(archive.read("404.html").decode())
+    privacy_page = archive.read("privacy.html").decode()
+    requisites_page = archive.read("requisites.html").decode()
+    assert "Политика обработки персональных данных и конфиденциальности" in privacy_page
+    assert len(re.findall(r"<section><h2>\d+\.", privacy_page)) == 15
+    assert "Контактный адрес" in requisites_page and "Банковская визитка ИП" in requisites_page
+    for route in routes:
+        name = route.lstrip("/") + ("index.html" if route.endswith("/") else "")
+        markup = archive.read(name).decode()
+        config = json.loads(re.search(r'id="page-settings">(.*?)</script>', markup)[1])
+        assert config["counterId"] == (data["analytics"]["counter_id"] if data["legal"]["policy_approved"] else None)
+        assert 'id="analytics-settings"' in markup and "legal-footer" in markup
     approved = {
         "peugeot-308-sw": (7, 15000, 150, 20),
         "vw-polo-2013": (1, 7000, 150, 15),
