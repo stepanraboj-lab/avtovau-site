@@ -75,6 +75,14 @@ def photo(image, css="", lazy=False):
     return f'<img class="{css}" src="/{escape(image["src"])}" alt="{escape(image["alt"])}"{loading}>'
 
 
+def gallery_link(image, index, hero=False):
+    css = ' class="hero-photo-link"' if hero else ""
+    return (
+        f'<a{css} data-photo-index="{index}" href="/{escape(image["src"])}" '
+        f'target="_blank" rel="noopener">{photo(image, "hero-photo" if hero else "", lazy=not hero)}</a>'
+    )
+
+
 def status(vehicle):
     kind = vehicle["status"]
     if kind == "rented":
@@ -199,15 +207,17 @@ def vehicle_page(vehicle, data):
             f'<tr><td>{escape(rate["label"])}{note}</td><td>{rubles(rate["daily_rub"])} ₽</td>'
             f'<td>{escape(total)}</td></tr>'
         )
-    gallery = "".join(
-        f'<a href="/{escape(image["src"])}" target="_blank" rel="noopener">{photo(image, lazy=True)}</a>'
-        for image in vehicle["gallery"]
-    )
+    hero = vehicle["photo"]
+    photos = list({image["src"]: image for image in vehicle["gallery"]}.values())
+    if not any(image["src"] == hero["src"] for image in photos):
+        photos.insert(0, hero)
+    hero_index = next(i for i, image in enumerate(photos) if image["src"] == hero["src"])
+    gallery = "".join(gallery_link(image, i) for i, image in enumerate(photos))
     return render(
         "vehicle", name=escape(vehicle["name"]), status=status(vehicle), features=features(vehicle),
         short_description=escape(vehicle["short_description"]), description=escape(vehicle["description"]),
         equipment='<ul class="equipment-list">' + "".join(equipment) + "</ul>" if equipment else "",
-        hero_photo=photo(vehicle["photo"], "hero-photo"), minimum=days(vehicle["minimum_days"]),
+        hero_photo=gallery_link(hero, hero_index, hero=True), minimum=days(vehicle["minimum_days"]),
         daily_km=vehicle["daily_km"], deposit_label=escape(vehicle["deposit"]["label"]),
         deposit=rubles(vehicle["deposit"]["rub"]),
         deposit_note=paragraph(vehicle["deposit"].get("note")), terms="".join(terms),
@@ -241,6 +251,12 @@ def pages(data):
             dialog_title="Забронировать автомобиль" if v else f'Связаться с {escape(company["name"])}',
             dialog_model=f'<p id="booking-model" class="booking-dialog__model">{escape(v["name"])}</p>' if v else "",
             dialog_label="booking-title booking-model" if v else "booking-title",
+            viewport_fit=",viewport-fit=cover" if v else "",
+            photo_viewer=render("photo-viewer", model=escape(v["name"])) if v else "",
+            photo_assets=(
+                '<link rel="stylesheet" href="/assets/photo-viewer.css">\n  '
+                '<script src="/assets/photo-viewer.js" defer></script>\n  '
+            ) if v else "",
         ).encode()
     sitemap = ET.Element("urlset", xmlns="http://www.sitemaps.org/schemas/sitemap/0.9")
     for page in output:
@@ -248,7 +264,9 @@ def pages(data):
         ET.SubElement(ET.SubElement(sitemap, "url"), "loc").text = loc
     ET.indent(sitemap, space="  ")
     output["sitemap.xml"] = ET.tostring(sitemap, encoding="utf-8", xml_declaration=True) + b"\n"
-    output["assets/fleet.css"] = Path(__file__).with_name("assets").joinpath("fleet.css").read_bytes()
+    assets = Path(__file__).with_name("assets")
+    for name in ("fleet.css", "photo-viewer.css", "photo-viewer.js"):
+        output[f"assets/{name}"] = (assets / name).read_bytes()
     return output
 
 

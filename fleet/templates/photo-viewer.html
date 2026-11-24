@@ -1,0 +1,23 @@
+<dialog id="photo-viewer" class="photo-viewer" aria-label="Фотогалерея — $model">
+  <div class="photo-viewer__layout">
+    <div class="photo-viewer__bar">
+      <output class="photo-viewer__counter" aria-live="polite" aria-atomic="true"></output>
+      <button type="button" class="photo-viewer__reset">Сбросить масштаб</button>
+      <button type="button" class="photo-viewer__close" aria-label="Закрыть фотогалерею" autofocus>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>
+      </button>
+    </div>
+    <div class="photo-viewer__main">
+      <div class="photo-viewer__stage">
+        <p class="photo-viewer__error" role="status" hidden>Не удалось загрузить фотографию.</p>
+      </div>
+      <button type="button" class="photo-viewer__previous" aria-label="Предыдущая фотография">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 5-7 7 7 7"/></svg>
+      </button>
+      <button type="button" class="photo-viewer__next" aria-label="Следующая фотография">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 5 7 7-7 7"/></svg>
+      </button>
+    </div>
+    <div class="photo-viewer__thumbs" aria-label="Миниатюры фотографий" role="group"></div>
+  </div>
+</dialog>
