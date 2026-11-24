@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#111815">
+  $metadata
+  <link rel="icon" type="image/png" sizes="96x96" href="/favicon.png">
+  <link rel="stylesheet" href="/assets/contact-options.css">
+  <link rel="stylesheet" href="/assets/booking-modal.css">
+  <link rel="stylesheet" href="/assets/fleet.css">
+  <script src="/assets/booking-modal.js" defer></script>
+</head>
+<body class="$page_class">
+<header class="site-header">
+  <div class="wrap site-nav">
+    <a class="wordmark" href="/" aria-label="$brand — главная">$brand</a>
+    <button type="button" class="header-contact booking-trigger" aria-haspopup="dialog" aria-controls="booking-dialog">Связаться</button>
+  </div>
+</header>
+$body
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <a class="wordmark" href="/" aria-label="$brand — главная">$brand</a>
+    $footer_contacts
+  </div>
+</footer>
+<dialog id="booking-dialog" class="booking-dialog" aria-labelledby="$dialog_label" aria-describedby="booking-description">
+  <div class="booking-dialog__panel">
+    <div class="booking-dialog__heading">
+      <h2 id="booking-title">$dialog_title</h2>
+      <button type="button" class="booking-dialog__close" aria-label="Закрыть окно" autofocus>×</button>
+    </div>
+    $dialog_model
+    <p id="booking-description" class="booking-dialog__description">Выберите удобный способ связи</p>
+  </div>
+</dialog>
+</body>
+</html>

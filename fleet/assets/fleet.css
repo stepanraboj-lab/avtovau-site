@@ -1,0 +1,192 @@
+:root {
+  --dark: #111815;
+  --lime: #d3f477;
+  --paper: #f3f2ed;
+  --ink: #17211d;
+  --muted: #515e55;
+  --line: #dfe3dc;
+  --surface: #fff;
+  --radius: 22px;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  color: var(--ink);
+  background: var(--paper);
+  font: 16px/1.55 Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+}
+a { color: inherit; text-decoration: none; }
+a:focus-visible, button:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 3px;
+}
+img { display: block; max-width: 100%; }
+h1, h2, h3, p { margin-top: 0; }
+h1, h2, h3 { line-height: 1.12; letter-spacing: -.025em; }
+h1 { font-size: clamp(34px, 5.2vw, 68px); margin-bottom: 16px; }
+h2 { font-size: clamp(25px, 3.5vw, 40px); margin-bottom: 18px; }
+h3 { font-size: 22px; margin-bottom: 12px; }
+.wrap { width: min(1120px, calc(100% - 32px)); margin-inline: auto; }
+.site-header, .site-footer, .intro { background: var(--dark); color: #fff; }
+.site-nav, .footer-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.site-nav { min-height: 70px; border-bottom: 1px solid #ffffff30; }
+.wordmark { font-size: 23px; font-weight: 900; letter-spacing: -.035em; }
+.header-contact {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 8px 16px;
+  border: 0;
+  border-radius: 99px;
+  background: var(--lime);
+  color: var(--dark);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.site-footer { padding: 28px 0; }
+.footer-inner { flex-wrap: wrap; }
+.footer-inner a:not(.wordmark) { text-decoration: underline; text-underline-offset: 3px; }
+.hero-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: clamp(24px, 4vw, 48px);
+  align-items: center;
+  padding-block: clamp(32px, 5vw, 64px);
+}
+.hero-copy, .hero-photo { min-width: 0; }
+.hero-copy > p { font-size: 17px; color: #c3ccc6; }
+.hero-photo {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: var(--radius);
+  background: #29352f;
+}
+.section { padding-block: clamp(25px, 4vw, 50px); }
+.catalog-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+.catalog-card {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--line);
+  overflow: hidden;
+  background: var(--surface);
+  border-radius: var(--radius);
+}
+.catalog-photo { position: relative; }
+.catalog-photo img { width: 100%; height: clamp(210px, 26vw, 290px); object-fit: cover; }
+.catalog-photo .availability { position: absolute; top: 16px; left: 16px; }
+.availability {
+  display: inline-block;
+  width: fit-content;
+  max-width: 100%;
+  padding: 6px 11px;
+  border-radius: 99px;
+  background: var(--lime);
+  color: var(--dark);
+  font-size: 12px;
+  font-weight: 800;
+}
+.availability--rented { background: #f3d7a7; color: #412a12; }
+.availability--unavailable { background: #dfe3dc; color: #27352c; }
+.catalog-card__body { flex: 1; display: flex; flex-direction: column; padding: 20px; }
+.catalog-card__price { margin-top: auto; padding-top: 14px; border-top: 1px solid var(--line); }
+.catalog-price { margin: 0; font-size: 24px; font-weight: 900; line-height: 1.25; white-space: nowrap; }
+.payment-note { margin: 4px 0 12px; color: var(--muted); font-size: 13px; }
+.details-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 48px;
+  border-radius: 99px;
+  color: #fff;
+  background: var(--dark);
+  font-size: 14px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+.catalog-card:hover .details-button { background: #29352f; }
+.details-button svg { width: 12px; height: 12px; }
+.features, .equipment-list, .facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  list-style: none;
+  margin: 0 0 18px;
+  padding: 0;
+}
+.features li, .common-equipment li, .equipment-list li, .facts li {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 9px;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  font-size: 14px;
+}
+.feature-icon { flex: none; width: 18px; height: 18px; color: #425c3e; }
+.common-equipment .features { margin-bottom: 0; }
+.vehicle-page {
+  --ink: #f3f6f1;
+  --muted: #bdc9c0;
+  --line: #46514b;
+  --surface: #1a241f;
+  background: var(--dark);
+}
+.vehicle-page .feature-icon { color: var(--lime); }
+.vehicle-page .section + .section { border-top: 1px solid var(--line); }
+.vehicle-hero .availability { margin-bottom: 12px; }
+.vehicle-equipment h2 { font-size: 20px; margin-bottom: 10px; }
+.vehicle-page .common-equipment { margin-top: 28px; }
+.vehicle-page .common-equipment h2 { font-size: 24px; }
+.terms-grid, .gallery {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+.terms-grid article, .booking-section {
+  padding: clamp(16px, 3vw, 26px);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+.terms-grid ul { margin: 0; padding-left: 20px; }
+.terms-grid li + li { margin-top: 7px; }
+.rental-notice { margin-top: 16px; color: var(--muted); }
+.table-frame { border: 1px solid var(--line); border-radius: 16px; background: var(--surface); }
+.tariff-table { width: 100%; border: 0; border-collapse: collapse; table-layout: fixed; text-align: left; }
+.tariff-table th, .tariff-table td {
+  padding: 10px clamp(6px, 2vw, 18px);
+  vertical-align: top;
+  overflow-wrap: break-word;
+}
+.tariff-table thead { color: var(--muted); font-size: 14px; }
+.tariff-table tbody tr { border-top: 1px solid var(--line); }
+.tariff-table td { font-size: 14px; }
+.tariff-table small { color: var(--muted); display: block; margin-top: 4px; }
+.gallery a { display: block; border-radius: 16px; overflow: hidden; }
+.gallery img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; background: var(--surface); }
+.booking-section .contact-options--booking { color: inherit; }
+.booking-section .contact-options__icon { background: #29352f; }
+.booking-section .contact-options__icon:hover { background: #3b4a41; }
+.home-page #contacts .contact-options { padding: 20px; background: var(--surface); border-radius: var(--radius); }
+.visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+@media (max-width: 720px) {
+  .hero-grid, .catalog-grid, .terms-grid { grid-template-columns: minmax(0, 1fr); }
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+}

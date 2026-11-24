@@ -1,0 +1,55 @@
+<main>
+  <section class="wrap hero-grid vehicle-hero" aria-labelledby="vehicle-name">
+    <div class="hero-copy">
+      <h1 id="vehicle-name">$name</h1>
+      $status
+      <p>$short_description</p>
+      $features
+      <div class="vehicle-equipment">
+        <h2>Комплектация и комфорт</h2>
+        $equipment
+      </div>
+      <div class="booking-actions">
+        <button type="button" class="booking-actions__control booking-actions__control--primary booking-trigger" aria-haspopup="dialog" aria-controls="booking-dialog">Забронировать</button>
+        <a class="booking-actions__control booking-actions__control--secondary" href="#tariffs">Посмотреть тарифы</a>
+      </div>
+    </div>
+    $hero_photo
+  </section>
+  <section class="wrap section" id="terms">
+    <h2>Параметры и условия аренды</h2>
+    <p>$description</p>
+    <ul class="facts">
+      <li>Минимальный срок аренды: <strong>$minimum</strong></li>
+      <li>Пробег в сутки: <strong>$daily_km&nbsp;км</strong></li>
+      <li>$deposit_label: <strong>$deposit&nbsp;₽</strong></li>
+    </ul>
+    $deposit_note
+    <div class="terms-grid">$terms</div>
+    $rental_notice
+    $common_equipment
+  </section>
+  <section class="wrap section" id="tariffs">
+    <h2>Тарифы</h2>
+    <p>$tariff_note</p>
+    <div class="table-frame">
+      <table class="tariff-table">
+        <caption class="visually-hidden">Тарифы на аренду $name</caption>
+        <thead><tr><th scope="col">Срок</th><th scope="col">За сутки</th><th scope="col">За период</th></tr></thead>
+        <tbody>$tariffs</tbody>
+      </table>
+    </div>
+  </section>
+  <section class="wrap section" id="photos">
+    <h2>Фотогалерея</h2>
+    <div class="gallery">$gallery</div>
+  </section>
+  <section class="wrap section" id="contacts">
+    <div class="booking-section">
+      <h2>Бронирование</h2>
+      <p>$contact_note</p>
+      <button type="button" class="booking-actions__control booking-actions__control--primary booking-trigger" aria-haspopup="dialog" aria-controls="booking-dialog">Забронировать</button>
+      $contacts
+    </div>
+  </section>
+</main>

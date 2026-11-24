@@ -1,0 +1,594 @@
+{
+  "company": {
+    "name": "АвтоВау",
+    "alternate_names": [
+      "AutoVau",
+      "Авто Вау"
+    ],
+    "website_aliases": [
+      "AutoVau",
+      "xn--80aafa3dxak.xn--p1ai"
+    ],
+    "domain": "xn--80aafa3dxak.xn--p1ai",
+    "city": "Москва",
+    "phone_display": "+7 (977) 852-27-86",
+    "contacts": [
+      {
+        "id": "telegram",
+        "url": "https://t.me/Sch0kk47",
+        "label": "Telegram",
+        "accessible_label": "Написать в Telegram"
+      },
+      {
+        "id": "whatsapp",
+        "url": "https://wa.me/79778522786",
+        "label": "WhatsApp",
+        "accessible_label": "Написать в WhatsApp"
+      },
+      {
+        "id": "avito",
+        "url": "https://www.avito.ru/brands/i106415552?src=sharing",
+        "label": "Авито",
+        "accessible_label": "Открыть профиль Авито"
+      },
+      {
+        "id": "phone",
+        "url": "tel:+79778522786",
+        "label": "Позвонить",
+        "accessible_label": "Позвонить по номеру +7 (977) 852-27-86"
+      }
+    ]
+  },
+  "common_equipment": [
+    {
+      "icon": "kit",
+      "label": "Набор автомобилиста"
+    },
+    {
+      "icon": "charge",
+      "label": "Зарядка для телефона"
+    },
+    {
+      "icon": "holder",
+      "label": "Держатель для телефона"
+    }
+  ],
+  "vehicles": [
+    {
+      "id": "peugeot-308-sw",
+      "name": "Peugeot 308 SW",
+      "path": "/cars/peugeot-308-sw/",
+      "year": 2008,
+      "body": "универсал",
+      "transmission": "механическая",
+      "equipment": {
+        "air_conditioning": null,
+        "climate_control": true,
+        "bluetooth": true,
+        "cruise_control": true,
+        "subwoofer": true,
+        "amplifier": true,
+        "door_soundproofing": true,
+        "rear_camera": true,
+        "dashcam": true,
+        "parking_sensors": null,
+        "upgraded_audio": null,
+        "spacious_trunk": true
+      },
+      "short_description": "Универсал с климат-контролем и просторным багажником.",
+      "description": "Peugeot 308 SW с механической коробкой передач, камерой заднего вида и круиз-контролем.",
+      "tariffs": [
+        {
+          "days": 7,
+          "label": "7 дней",
+          "daily_rub": 2400,
+          "total_format": "{total} ₽ за весь срок",
+          "note": "Для коротких поездок и временных задач"
+        },
+        {
+          "days": 15,
+          "label": "15 дней",
+          "daily_rub": 2100,
+          "total_format": "{total} ₽ за весь срок",
+          "note": "Хороший баланс срока и цены"
+        },
+        {
+          "days": 30,
+          "label": "30 дней",
+          "daily_rub": 1800,
+          "total_format": "{total} ₽ за весь срок",
+          "note": "Самая низкая цена за сутки"
+        }
+      ],
+      "tariff_note": "Чем дольше аренда, тем ниже цена за сутки. Оплата за выбранный период вперёд.",
+      "minimum_days": 7,
+      "daily_km": 150,
+      "deposit": {
+        "label": "Возвратный залог",
+        "rub": 15000
+      },
+      "terms": [
+        {
+          "title": "Требования к водителю",
+          "rules": [
+            "Возраст — от 21 года",
+            "Стаж вождения — от 3 лет, безаварийный",
+            "Гражданство — любое",
+            "Для иностранных граждан — ВНЖ/РВП и права РФ",
+            "ОСАГО включено"
+          ]
+        },
+        {
+          "title": "Пробег и территория",
+          "rules": [
+            "150 км пробега в сутки включено",
+            "Сверх лимита — 25 ₽ за километр",
+            "Радиус аренды — до ЦКАД",
+            "Минимальный срок — 7 дней"
+          ]
+        }
+      ],
+      "contact_note": "Напишите — уточним даты и договоримся об аренде.",
+      "status": "rented",
+      "rented_until": "2026-12-01",
+      "photo": {
+        "src": "assets/IMG_7593.jpeg",
+        "alt": "Peugeot 308 SW, вид сбоку"
+      },
+      "gallery": [
+        {
+          "src": "assets/IMG_7593.jpeg",
+          "alt": "Peugeot 308 SW сбоку"
+        },
+        {
+          "src": "assets/IMG_7595.jpeg",
+          "alt": "Peugeot 308 SW спереди"
+        },
+        {
+          "src": "assets/IMG_7597.jpeg",
+          "alt": "Peugeot 308 SW сзади"
+        },
+        {
+          "src": "assets/IMG_7598.jpeg",
+          "alt": "Салон Peugeot 308 SW"
+        },
+        {
+          "src": "assets/IMG_7600.jpeg",
+          "alt": "Багажник Peugeot 308 SW"
+        }
+      ],
+      "brand": "Peugeot",
+      "model": "308 SW"
+    },
+    {
+      "id": "vw-polo-2013",
+      "name": "Volkswagen Polo",
+      "path": "/cars/vw-polo-2013/",
+      "year": 2013,
+      "body": "седан",
+      "transmission": "механическая",
+      "equipment": {
+        "air_conditioning": false,
+        "climate_control": null,
+        "bluetooth": true,
+        "cruise_control": false,
+        "subwoofer": true,
+        "amplifier": null,
+        "door_soundproofing": false,
+        "rear_camera": null,
+        "dashcam": true,
+        "parking_sensors": true,
+        "upgraded_audio": null,
+        "spacious_trunk": null
+      },
+      "short_description": "Седан на механике с Bluetooth и парктрониками.",
+      "description": "Volkswagen Polo с механической коробкой передач и сабвуфером. Кондиционера нет.",
+      "tariffs": [
+        {
+          "days": 30,
+          "label": "Оплата за месяц вперёд",
+          "daily_rub": 1700,
+          "total_format": "30 дней — {total} ₽",
+          "note": "Минимальный срок аренды — 1 сутки"
+        },
+        {
+          "days": 15,
+          "label": "Оплата за 15 дней вперёд",
+          "daily_rub": 1900,
+          "total_format": "15 дней — {total} ₽",
+          "note": "Тариф на длительную аренду"
+        },
+        {
+          "days": 7,
+          "label": "Оплата за неделю вперёд",
+          "daily_rub": 2100,
+          "total_format": "7 дней — {total} ₽",
+          "note": "Тариф на неделю"
+        },
+        {
+          "days": 3,
+          "label": "Посуточно — от 3 суток",
+          "daily_rub": 2400,
+          "total_format": "От {total} ₽ за 3 дня",
+          "note": "При аренде от трёх суток"
+        },
+        {
+          "days": 1,
+          "label": "Посуточно — от 1 суток",
+          "daily_rub": 2700,
+          "total_format": "1 сутки — {total} ₽",
+          "note": "Короткая аренда"
+        }
+      ],
+      "tariff_note": "Стоимость указана за сутки при соответствующей оплате вперёд.",
+      "minimum_days": 1,
+      "daily_km": 150,
+      "deposit": {
+        "label": "Возвратный залог",
+        "rub": 7000
+      },
+      "terms": [
+        {
+          "title": "Требования к водителю",
+          "rules": [
+            "Возраст от 21 года",
+            "Стаж вождения от 3 лет, безаварийный",
+            "Гражданство любое",
+            "ОСАГО без ограничений — любой водитель",
+            "Аренда от одних суток"
+          ]
+        },
+        {
+          "title": "Пробег и дополнительные условия",
+          "rules": [
+            "Включено 150 км в сутки",
+            "Превышение лимита — 15 ₽/км",
+            "Механическая коробка передач",
+            "Кондиционера нет"
+          ]
+        }
+      ],
+      "rental_notice": "Обрати внимание: в автомобиле нет кондиционера. Учитывай это при выборе машины и планировании поездки.",
+      "contact_note": "Напишите напрямую — уточним свободные даты и ответим на вопросы.",
+      "status": "available",
+      "rented_until": null,
+      "photo": {
+        "src": "assets/polo-02-side.jpg",
+        "alt": "Volkswagen Polo 2013 года, вид сбоку"
+      },
+      "gallery": [
+        {
+          "src": "assets/polo-02-side.jpg",
+          "alt": "Volkswagen Polo: Вид сбоку"
+        },
+        {
+          "src": "assets/polo-01-front.jpg",
+          "alt": "Volkswagen Polo: Спереди"
+        },
+        {
+          "src": "assets/polo-03-rear.jpg",
+          "alt": "Volkswagen Polo: Сзади"
+        },
+        {
+          "src": "assets/polo-04-interior.jpg",
+          "alt": "Volkswagen Polo: Салон"
+        },
+        {
+          "src": "assets/polo-05-trunk.jpg",
+          "alt": "Volkswagen Polo: Багажник"
+        },
+        {
+          "src": "assets/polo-06-dashboard.jpg",
+          "alt": "Volkswagen Polo: Панель приборов"
+        },
+        {
+          "src": "assets/polo-07-rear-seats.jpg",
+          "alt": "Volkswagen Polo: Задние сиденья"
+        }
+      ],
+      "brand": "Volkswagen",
+      "model": "Polo"
+    },
+    {
+      "id": "renault-logan",
+      "name": "Renault Logan",
+      "path": "/cars/renault-logan/",
+      "year": 2015,
+      "body": "седан",
+      "transmission": "механическая",
+      "equipment": {
+        "air_conditioning": false,
+        "climate_control": null,
+        "bluetooth": true,
+        "cruise_control": false,
+        "subwoofer": true,
+        "amplifier": null,
+        "door_soundproofing": false,
+        "rear_camera": null,
+        "dashcam": null,
+        "parking_sensors": null,
+        "upgraded_audio": true,
+        "spacious_trunk": null
+      },
+      "equipment_notes": {
+        "subwoofer": "Под сиденьем"
+      },
+      "short_description": "Седан с механической коробкой передач и улучшенной аудиосистемой.",
+      "description": "Renault Logan для поездок по Москве и Московской области. Сабвуфер расположен под сиденьем.",
+      "tariffs": [
+        {
+          "days": 1,
+          "label": "1 сутки",
+          "daily_rub": 2500,
+          "total_format": "{total} ₽ за 1 день"
+        },
+        {
+          "days": 3,
+          "label": "От 3 суток",
+          "daily_rub": 2200,
+          "total_format": "От {total} ₽ за 3 дня"
+        },
+        {
+          "days": 7,
+          "label": "7 дней",
+          "daily_rub": 1800,
+          "total_format": "{total} ₽ за 7 дней"
+        },
+        {
+          "days": 15,
+          "label": "15 дней",
+          "daily_rub": 1600,
+          "total_format": "{total} ₽ за 15 дней"
+        },
+        {
+          "days": 30,
+          "label": "30 дней",
+          "daily_rub": 1400,
+          "total_format": "{total} ₽ за 30 дней"
+        }
+      ],
+      "tariff_note": "Стоимость указана за сутки при предоплате выбранного срока.",
+      "minimum_days": 1,
+      "daily_km": 150,
+      "deposit": {
+        "label": "Возвратный депозит",
+        "rub": 7000,
+        "note": "Возврат депозита — в течение 21 дня после завершения аренды при отсутствии штрафов, повреждений и недолива топлива."
+      },
+      "terms": [
+        {
+          "title": "Требования к водителю",
+          "rules": [
+            "Возраст от 21 года",
+            "Безаварийный стаж от 3 лет",
+            "Гражданство любое, при наличии документов, позволяющих управлять автомобилем в РФ",
+            "Для иностранных граждан требования к правам и ВНЖ/РВП уточняются перед бронированием",
+            "Отказ возможен при неоплаченных штрафах, долгах по аренде или открытых исполнительных производствах ФССП"
+          ]
+        },
+        {
+          "title": "Пробег и территория",
+          "rules": [
+            "150 км в сутки включено",
+            "Превышение пробега — 15 ₽/км",
+            "Москва и Московская область, базовая зона до ЦКАД",
+            "Поездки за ЦКАД — 15 ₽/км согласно условиям аренды",
+            "Выезд в другие регионы — по согласованию, возможны другие тариф и депозит",
+            "GPS-контроль автомобиля"
+          ]
+        },
+        {
+          "title": "Эксплуатация",
+          "rules": [
+            "ТО и ОСАГО оплачивает владелец; бензин и аренду — арендатор",
+            "Осмотр и фотофиксация при передаче",
+            "Курение в салоне запрещено, договорный штраф 10 000 ₽",
+            "Передача руля третьим лицам — только с письменного согласия владельца",
+            "Не сдаётся для такси и доставки"
+          ]
+        },
+        {
+          "title": "ДТП и ответственность",
+          "rules": [
+            "При ДТП действовать по ПДД, незамедлительно сообщить владельцу и не подписывать необдуманные признания",
+            "КАСКО нет",
+            "Ответственность за ДТП, угон и повреждения определяется договором и применимым законодательством",
+            "Депозит предназначен для штрафов и небольших недочётов, но не ограничивает ответственность по договору"
+          ]
+        }
+      ],
+      "rental_notice": "Важно: Renault Logan строго не предоставляется для такси и доставки. Перед бронированием уточняйте документы, территорию поездок и условия договора.",
+      "contact_note": "Напишите в Telegram, чтобы уточнить свободные даты и место передачи в Балашихе.",
+      "status": "available",
+      "rented_until": null,
+      "photo": {
+        "src": "assets/logan-02-left-side.jpg",
+        "alt": "Renault Logan, вид сбоку"
+      },
+      "gallery": [
+        {
+          "src": "assets/logan-02-left-side.jpg",
+          "alt": "Renault Logan: Вид сбоку"
+        },
+        {
+          "src": "assets/logan-01-front.jpg",
+          "alt": "Renault Logan: Спереди"
+        },
+        {
+          "src": "assets/logan-03-right-side.jpg",
+          "alt": "Renault Logan: Другой бок"
+        },
+        {
+          "src": "assets/logan-04-rear.jpg",
+          "alt": "Renault Logan: Сзади"
+        },
+        {
+          "src": "assets/logan-05-rear-seats.jpg",
+          "alt": "Renault Logan: Задний ряд"
+        },
+        {
+          "src": "assets/logan-06-dashboard.jpg",
+          "alt": "Renault Logan: Передний салон"
+        },
+        {
+          "src": "assets/logan-07-trunk.jpg",
+          "alt": "Renault Logan: Багажник"
+        }
+      ],
+      "brand": "Renault",
+      "model": "Logan",
+      "rental_location": "в Балашихе"
+    },
+    {
+      "id": "kia-rio",
+      "name": "Kia Rio",
+      "path": "/cars/kia-rio/",
+      "year": 2010,
+      "body": "хэтчбек",
+      "transmission": "механическая",
+      "equipment": {
+        "air_conditioning": true,
+        "climate_control": null,
+        "bluetooth": true,
+        "cruise_control": false,
+        "subwoofer": false,
+        "amplifier": null,
+        "door_soundproofing": false,
+        "rear_camera": null,
+        "dashcam": null,
+        "parking_sensors": null,
+        "upgraded_audio": null,
+        "spacious_trunk": null
+      },
+      "short_description": "Жёлтый хэтчбек с механической коробкой передач и кондиционером.",
+      "description": "Kia Rio в аренду без водителя. В автомобиле есть кондиционер и Bluetooth.",
+      "tariffs": [
+        {
+          "days": 1,
+          "label": "1 сутки",
+          "daily_rub": 2200,
+          "total_format": "{total} ₽ за 1 день"
+        },
+        {
+          "days": 3,
+          "label": "От 3 суток",
+          "daily_rub": 1900,
+          "total_format": "От {total} ₽ за 3 дня"
+        },
+        {
+          "days": 7,
+          "label": "7 дней",
+          "daily_rub": 1700,
+          "total_format": "{total} ₽ за 7 дней при предоплате"
+        },
+        {
+          "days": 15,
+          "label": "15 дней",
+          "daily_rub": 1500,
+          "total_format": "{total} ₽ за 15 дней при предоплате"
+        },
+        {
+          "days": 30,
+          "label": "30 дней",
+          "daily_rub": 1350,
+          "total_format": "{total} ₽ за 30 дней при предоплате"
+        }
+      ],
+      "tariff_note": "Стоимость указана за сутки при предоплате выбранного срока.",
+      "minimum_days": 1,
+      "daily_km": 150,
+      "deposit": {
+        "label": "Возвратный депозит",
+        "rub": 7000,
+        "note": "Возврат депозита — в течение 21 дня после завершения аренды при отсутствии штрафов, повреждений и недолива топлива."
+      },
+      "terms": [
+        {
+          "title": "Водитель",
+          "rules": [
+            "Возраст от 21 года",
+            "Безаварийный стаж от 3 лет",
+            "Гражданство любое",
+            "Не сдаётся при неоплаченных штрафах, долгах по арендам или открытых производствах ФССП",
+            "ОСАГО без ограничений (любой водитель)"
+          ]
+        },
+        {
+          "title": "Пробег и депозит",
+          "rules": [
+            "150 км/сутки включено",
+            "Превышение — 15 ₽/км",
+            "Депозит — 7 000 ₽",
+            "Возврат депозита в течение 21 дня при отсутствии штрафов, повреждений и недолива топлива"
+          ]
+        },
+        {
+          "title": "Эксплуатация",
+          "rules": [
+            "Обслуживание за счёт владельца; бензин и аренда — за счёт арендатора",
+            "Осмотр и совместная фотофиксация при передаче",
+            "Курение запрещено — штраф 10 000 ₽",
+            "Передача управления третьим лицам только с письменного согласия владельца"
+          ]
+        },
+        {
+          "title": "При ДТП",
+          "rules": [
+            "Сразу связаться с владельцем",
+            "Не признавать вину до выяснения обстоятельств",
+            "Соблюдать требования ПДД и порядок оформления ДТП"
+          ]
+        }
+      ],
+      "rental_notice": "Условия аренды Kia Rio: от 1 дня, депозит 7 000 ₽. Уточняйте доступность перед бронированием.",
+      "contact_note": "Напишите в Telegram, чтобы уточнить свободные даты и место передачи в Балашихе.",
+      "status": "rented",
+      "rented_until": "2026-12-04",
+      "photo": {
+        "src": "assets/kia-02.jpg",
+        "alt": "Kia Rio, вид сбоку"
+      },
+      "gallery": [
+        {
+          "src": "assets/kia-01.jpg",
+          "alt": "Kia Rio, вид спереди"
+        },
+        {
+          "src": "assets/kia-02.jpg",
+          "alt": "Kia Rio, вид сбоку"
+        },
+        {
+          "src": "assets/kia-03.jpg",
+          "alt": "Kia Rio, вид с другого бока"
+        },
+        {
+          "src": "assets/kia-04.jpg",
+          "alt": "Kia Rio, передние сиденья через открытую дверь"
+        },
+        {
+          "src": "assets/kia-05.jpg",
+          "alt": "Kia Rio, задние сиденья"
+        },
+        {
+          "src": "assets/kia-06.jpg",
+          "alt": "Kia Rio, руль и приборная панель"
+        },
+        {
+          "src": "assets/kia-07.jpg",
+          "alt": "Kia Rio, открытый багажник"
+        },
+        {
+          "src": "assets/kia-08.jpg",
+          "alt": "Kia Rio, центральная консоль"
+        }
+      ],
+      "brand": "Kia",
+      "model": "Rio",
+      "rental_location": "в Балашихе"
+    }
+  ],
+  "home_photo": {
+    "src": "assets/IMG_7593.jpeg",
+    "alt": "Peugeot 308 SW, вид сбоку"
+  }
+}
