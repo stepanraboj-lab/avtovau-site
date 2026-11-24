@@ -349,17 +349,18 @@ def pages(data, available):
     hero = data["home_photo"]
     analytics = data.get("analytics", {})
     counter = analytics.get("counter_id") if legal["policy_approved"] else None
-    cookie_text = ('<p>Мы используем cookies и Яндекс Метрику для анализа посещаемости и улучшения работы сайта. '
-                   'Вы можете разрешить аналитику или отказаться от неё. Подробнее — в '
-                   '<a class="text-link" href="/privacy.html">политике конфиденциальности</a>.</p>') if counter else (
-        '<p>Необязательная аналитика сейчас выключена. Подробнее — в '
-        '<a class="text-link" href="/privacy.html">политике конфиденциальности</a>.</p>'
-    )
-    cookie_actions = ('<div class="cookie-notice__actions"><button type="button" data-consent="allow">Принять</button>'
-                      '<button type="button" data-consent="deny">Отклонить</button></div>') if counter else (
-        '<div class="cookie-notice__actions"><button type="button" data-consent="dismiss">Закрыть</button></div>'
-    )
-    analytics_notice = render("analytics-consent", cookie_text=cookie_text, cookie_actions=cookie_actions)
+    def analytics_notice(counter):
+        cookie_text = ('<p>С вашего согласия Яндекс Метрика использует cookies и рекламные метки для анализа посещаемости. '
+                       'Вы можете разрешить аналитику или отказаться от неё. Подробнее — в '
+                       '<a class="text-link" href="/privacy.html">политике конфиденциальности</a>.</p>') if counter else (
+            '<p>Необязательная аналитика сейчас выключена. Подробнее — в '
+            '<a class="text-link" href="/privacy.html">политике конфиденциальности</a>.</p>'
+        )
+        cookie_actions = ('<div class="cookie-notice__actions"><button type="button" data-consent="allow">Принять</button>'
+                          '<button type="button" data-consent="deny">Отклонить</button></div>') if counter else (
+            '<div class="cookie-notice__actions"><button type="button" data-consent="dismiss">Закрыть</button></div>'
+        )
+        return render("analytics-consent", cookie_text=cookie_text, cookie_actions=cookie_actions)
     banner = data.get("home_banner")
     cards = "".join(render(
         "card", path=escape(v["path"]), photo=photo(catalog_photo(v), lazy=True, available=available, sizes=CATALOG_SIZES, low=True), status=status(v),
@@ -373,7 +374,8 @@ def pages(data, available):
 
     def document(body, vehicle=None, missing=False, legal_metadata=None):
         v = vehicle
-        page_settings = {"counterId": counter, "vehicle": None}
+        page_counter = None if missing else counter
+        page_settings = {"counterId": page_counter, "vehicle": None}
         if v:
             page_settings["vehicle"] = {key: v[key] for key in ("id", "name", "year", "minimum_days", "deposit")}
             page_settings["vehicle"]["tariffs"] = [
@@ -397,7 +399,7 @@ def pages(data, available):
                 '<link rel="stylesheet" href="/assets/photo-viewer.css">\n  '
                 '<script src="/assets/photo-viewer.js" defer></script>\n  '
             ) if v else "",
-            analytics_notice=analytics_notice, legal_footer=legal_footer,
+            analytics_notice=analytics_notice(page_counter), legal_footer=legal_footer,
             page_settings=json.dumps(page_settings, ensure_ascii=False).replace("<", "\\u003c"),
         ).encode()
 
@@ -425,7 +427,7 @@ def pages(data, available):
     output["sitemap.xml"] = ET.tostring(sitemap, encoding="utf-8", xml_declaration=True) + b"\n"
     output["404.html"] = document(render("404"), missing=True)
     assets = Path(__file__).with_name("assets")
-    for name in ("fleet.css", "photo-viewer.css", "photo-viewer.js", "commercial.js", "booking-rules.js"):
+    for name in ("fleet.css", "photo-viewer.css", "photo-viewer.js", "commercial.js", "booking-rules.js", "analytics.js"):
         output[f"assets/{name}"] = (assets / name).read_bytes()
     return output
 

@@ -1,4 +1,5 @@
 import {contactUrl, message, quote, rentalDays, rubles, todayInMoscow} from './booking-rules.js';
+import {setupAnalytics} from './analytics.js';
 
 const page = JSON.parse(document.querySelector('#page-settings').textContent);
 const vehicle = page.vehicle;
@@ -8,101 +9,7 @@ const contactEvents = {
   telegram: 'contact_telegram', whatsapp: 'contact_whatsapp',
   phone: 'contact_phone', avito: 'contact_avito'
 };
-const settings = document.querySelector('#analytics-settings');
-const consentKey = 'autovau.analytics.v2';
-let active = false;
-let consent;
-let analyticsScript;
-try { consent = localStorage.getItem(consentKey); } catch { /* Обходиться без хранилища. */ }
-
-function sendGoal(name) {
-  if (!active) return;
-  const params = vehicle ? {vehicle_id: vehicle.id} : {};
-  window.ym(page.counterId, 'reachGoal', name, params);
-}
-
-function enableAnalytics() {
-  try {
-    window.ym ||= function () { (window.ym.a ||= []).push(arguments); };
-    window.ym.l = Date.now();
-    window.ym(page.counterId, 'init', {
-      defer: true, clickmap: false, trackLinks: false, webvisor: false,
-      accurateTrackBounce: false, trackHash: false
-    });
-    if (canonical) window.ym(page.counterId, 'hit', canonical, {referer: ''});
-    active = true;
-    if (vehicle) sendGoal('vehicle_view');
-    analyticsScript = document.createElement('script');
-    analyticsScript.async = true;
-    analyticsScript.src = 'https://mc.yandex.ru/metrika/tag.js';
-    document.head.append(analyticsScript);
-  } catch { active = false; }
-}
-
-function clearAnalyticsCookies() {
-  const siteHost = canonical ? new URL(canonical).hostname : location.hostname;
-  const domains = ['', location.hostname, siteHost].filter((host, i, values) =>
-    values.indexOf(host) === i && (!host || location.hostname === host || location.hostname.endsWith('.' + host))
-  );
-  for (const entry of document.cookie.split(';')) {
-    const name = entry.trim().split('=')[0];
-    if (!/^_ym_[a-z0-9_]+$/i.test(name)) continue;
-    for (const domain of domains) {
-      document.cookie = name + '=; Max-Age=0; Path=/' + (domain ? '; Domain=' + domain : '');
-    }
-  }
-}
-
-const notice = document.querySelector('#analytics-consent');
-if (notice && settings) {
-  settings.hidden = false;
-  let openedFromFooter = false;
-  function showNotice() {
-    notice.hidden = false;
-    settings.setAttribute('aria-expanded', 'true');
-  }
-  function hideNotice() {
-    notice.hidden = true;
-    settings.setAttribute('aria-expanded', 'false');
-    if (openedFromFooter) settings.focus();
-    openedFromFooter = false;
-  }
-  function revoke() {
-    const wasActive = active;
-    active = false;
-    analyticsScript?.remove();
-    clearAnalyticsCookies();
-    if (wasActive) location.reload();
-  }
-  settings.addEventListener('click', () => {
-    if (openedFromFooter && !notice.hidden) {
-      hideNotice();
-      return;
-    }
-    openedFromFooter = true;
-    settings.closest('footer').before(notice);
-    showNotice();
-    notice.focus();
-  });
-  notice.addEventListener('click', event => {
-    const choice = event.target.closest('button[data-consent]')?.dataset.consent;
-    if (choice === 'dismiss') hideNotice();
-    if (!page.counterId || (choice !== 'allow' && choice !== 'deny')) return;
-    try { localStorage.setItem(consentKey, choice); } catch { /* Согласие действует только в текущей вкладке. */ }
-    consent = choice;
-    hideNotice();
-    if (choice === 'allow' && !active) enableAnalytics();
-    if (choice === 'deny') revoke();
-  });
-  if (page.counterId && consent === 'allow') enableAnalytics();
-  else if (consent === 'deny') clearAnalyticsCookies();
-  else if (page.counterId) showNotice();
-
-  window.addEventListener('storage', event => {
-    if (event.key !== consentKey || event.newValue === 'allow') return;
-    revoke();
-  });
-}
+const sendGoal = setupAnalytics(page.counterId, canonical, vehicle);
 
 for (const year of document.querySelectorAll('[data-copy-year]')) {
   year.textContent = new Intl.DateTimeFormat('ru-RU', {year: 'numeric', timeZone: 'Europe/Moscow'}).format(new Date());
@@ -129,7 +36,7 @@ for (const button of document.querySelectorAll('button[data-copy]')) {
 
 document.addEventListener('click', event => {
   const link = event.target.closest('a[data-contact]');
-  if (link && contactEvents[link.dataset.contact]) sendGoal(contactEvents[link.dataset.contact]);
+  if (link && contactEvents[link.dataset.contact]) sendGoal(contactEvents[link.dataset.contact], true);
 });
 
 for (const link of document.querySelectorAll('a[data-contact="telegram"], a[data-contact="whatsapp"]')) {
@@ -157,7 +64,8 @@ if (dialog && source) {
   let opener;
   let booking = false;
   let outside = false;
-  let lastPrice = '';
+  let lastTrackedDates;
+  const trackedQuotes = new Set();
 
   function refresh(track = false) {
     const assessment = booking ? quote(start.value, end.value, vehicle) : {state: 'empty'};
@@ -183,11 +91,12 @@ if (dialog && source) {
     }
     const body = message(booking ? vehicle : null, start?.value, end?.value, assessment);
     messengers.forEach((link, index) => { link.href = contactUrl(originals[index], body); });
-    if (track) {
-      sendGoal('booking_dates');
+    if (track && (assessment.state === 'priced' || assessment.state === 'unknown')) {
       const pair = start.value + '/' + end.value;
-      if (assessment.state === 'priced' && pair !== lastPrice) sendGoal('booking_quote');
-      lastPrice = assessment.state === 'priced' ? pair : '';
+      if (pair !== lastTrackedDates && sendGoal('booking_dates')) lastTrackedDates = pair;
+      if (assessment.state === 'priced' && !trackedQuotes.has(pair) && sendGoal('booking_quote')) {
+        trackedQuotes.add(pair);
+      }
     }
   }
 
@@ -207,7 +116,7 @@ if (dialog && source) {
       dialog.showModal();
       document.documentElement.classList.add('booking-open');
       close.focus({preventScroll: true});
-      if (booking) sendGoal('booking_open');
+      if (booking) sendGoal('booking_open', true);
     });
   }
   fields?.addEventListener('input', () => refresh(true));
@@ -227,28 +136,36 @@ const share = document.querySelector('#vehicle-share');
 if (share && canonical) {
   const status = document.querySelector('#share-status');
   const manual = document.querySelector('#share-manual');
+  let sharing = false;
   share.hidden = false;
   share.addEventListener('click', async () => {
-    sendGoal('vehicle_share');
+    if (sharing) return;
+    sharing = true;
     status.textContent = '';
     manual.hidden = true;
     try {
       if (navigator.share) {
-        await navigator.share({title: document.title, url: canonical});
-        return;
+        try {
+          await navigator.share({title: document.title, url: canonical});
+          sendGoal('vehicle_share', true);
+          return;
+        } catch (error) {
+          if (error.name === 'AbortError') return;
+        }
       }
-    } catch (error) {
-      if (error.name === 'AbortError') return;
-    }
-    try {
-      await navigator.clipboard.writeText(canonical);
-      status.textContent = 'Ссылка скопирована.';
-    } catch {
-      manual.value = canonical;
-      manual.hidden = false;
-      manual.focus();
-      manual.select();
-      status.textContent = 'Скопируйте выделенную ссылку.';
+      try {
+        await navigator.clipboard.writeText(canonical);
+        sendGoal('vehicle_share', true);
+        status.textContent = 'Ссылка скопирована.';
+      } catch {
+        manual.value = canonical;
+        manual.hidden = false;
+        manual.focus();
+        manual.select();
+        status.textContent = 'Скопируйте выделенную ссылку.';
+      }
+    } finally {
+      sharing = false;
     }
   });
 }
