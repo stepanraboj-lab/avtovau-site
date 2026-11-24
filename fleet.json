@@ -606,5 +606,9 @@
   "home_photo": {
     "src": "assets/IMG_7593.jpeg",
     "alt": "Peugeot 308 SW, вид сбоку"
+  },
+  "home_banner": {
+    "src": "assets/autovau-hero.webp",
+    "alt": "АвтоВау — аренда автомобилей в Москве"
   }
 }
