@@ -12,7 +12,7 @@ permissions:
 
 concurrency:
   group: github-pages
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   deploy:
@@ -23,17 +23,60 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
-      - name: Extract the website ZIP
+      - name: Extract and validate the website ZIP
         run: |
+          unzip -tq site.zip
           mkdir -p public
           unzip -oq site.zip -d public
-          test -f public/index.html
-          test -f public/CNAME
-          test -f public/cars/vw-polo-2013/index.html
+
+          for path in \
+            index.html \
+            cars/kia-rio/index.html \
+            cars/peugeot-308-sw/index.html \
+            cars/renault-logan/index.html \
+            cars/vw-polo-2013/index.html \
+            CNAME \
+            assets/IMG_7593.jpeg \
+            assets/IMG_7595.jpeg \
+            assets/IMG_7597.jpeg \
+            assets/IMG_7598.jpeg \
+            assets/IMG_7600.jpeg \
+            assets/kia-01.jpg \
+            assets/kia-02.jpg \
+            assets/kia-03.jpg \
+            assets/kia-04.jpg \
+            assets/kia-05.jpg \
+            assets/kia-06.jpg \
+            assets/kia-07.jpg \
+            assets/kia-08.jpg \
+            assets/logan-01-front.jpg \
+            assets/logan-02-left-side.jpg \
+            assets/logan-03-right-side.jpg \
+            assets/logan-04-rear.jpg \
+            assets/logan-05-rear-seats.jpg \
+            assets/logan-06-dashboard.jpg \
+            assets/logan-07-trunk.jpg \
+            assets/polo-01-front.jpg \
+            assets/polo-02-side.jpg \
+            assets/polo-03-rear.jpg \
+            assets/polo-04-interior.jpg \
+            assets/polo-05-trunk.jpg \
+            assets/polo-06-dashboard.jpg \
+            assets/polo-07-rear-seats.jpg; do
+            if [[ ! -f "public/$path" || ! -s "public/$path" ]]; then
+              echo "::error file=site.zip::Missing or empty required file: $path"
+              exit 1
+            fi
+          done
+
+          if [[ ! -f public/.nojekyll ]]; then
+            echo "::error file=site.zip::Missing required file: .nojekyll"
+            exit 1
+          fi
       - name: Configure Pages
         uses: actions/configure-pages@v5
       - name: Upload site
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v4
         with:
           path: public
       - name: Deploy to GitHub Pages
