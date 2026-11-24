@@ -5,17 +5,18 @@
   <meta name="viewport" content="width=device-width,initial-scale=1$viewport_fit">
   <meta name="theme-color" content="#111815">
   $metadata
+  <link rel="apple-touch-icon" sizes="96x96" href="/favicon.png">
   <link rel="icon" type="image/png" sizes="96x96" href="/favicon.png">
   <link rel="stylesheet" href="/assets/contact-options.css">
   <link rel="stylesheet" href="/assets/booking-modal.css">
   <link rel="stylesheet" href="/assets/fleet.css">
-  $photo_assets<script src="/assets/booking-modal.js" defer></script>
+  $photo_assets<script type="module" src="/assets/commercial.js"></script>
 </head>
 <body class="$page_class">
 <header class="site-header">
   <div class="wrap site-nav">
     <a class="wordmark" href="/" aria-label="$brand — главная">$brand</a>
-    <button type="button" class="header-contact booking-trigger" aria-haspopup="dialog" aria-controls="booking-dialog">Связаться</button>
+    <button type="button" class="header-contact booking-trigger" data-general-contact aria-haspopup="dialog" aria-controls="booking-dialog">Связаться</button>
   </div>
 </header>
 $body
@@ -23,6 +24,7 @@ $body
   <div class="wrap footer-inner">
     <a class="wordmark" href="/" aria-label="$brand — главная">$brand</a>
     $footer_contacts
+    $analytics_settings
   </div>
 </footer>
 <dialog id="booking-dialog" class="booking-dialog" aria-labelledby="$dialog_label" aria-describedby="booking-description">
@@ -32,8 +34,11 @@ $body
       <button type="button" class="booking-dialog__close" aria-label="Закрыть окно" autofocus>×</button>
     </div>
     $dialog_model
+    $booking_dates
     <p id="booking-description" class="booking-dialog__description">Выберите удобный способ связи</p>
   </div>
 </dialog>
-$photo_viewer</body>
+$photo_viewer$analytics_dialog
+<script type="application/json" id="page-settings">$page_settings</script>
+</body>
 </html>

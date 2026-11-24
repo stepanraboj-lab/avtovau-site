@@ -191,3 +191,41 @@ h3 { font-size: 22px; margin-bottom: 12px; }
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
 }
+
+/* Бронирование, согласие и справка. */
+#booking-dates { margin-top: 12px; }
+.booking-state { margin-bottom: 10px; }
+.booking-date-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px; }
+.booking-date-grid label { min-width: 0; font-size: 13px; }
+.booking-date-grid input, #share-manual {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  min-height: 42px;
+  margin-top: 4px;
+  padding: 5px;
+  font: inherit;
+  color: inherit;
+  color-scheme: dark;
+  background: #29352f;
+  border: 1px solid #66736b;
+  border-radius: 8px;
+}
+.booking-date-grid input[aria-invalid="true"] { border-color: #f3d7a7; }
+#booking-quote { margin: 8px 0; font-weight: 700; }
+#booking-quote:empty, #share-status:empty { display: none; }
+#share-manual[hidden], #vehicle-share[hidden] { display: none; }
+.vehicle-share { margin-top: 16px; text-align: center; }
+.vehicle-share .header-contact, #analytics-settings {
+  background: transparent;
+  color: inherit;
+  border: 1px solid #66736b;
+}
+#share-status { margin: 6px 0; }
+.faq details { border-top: 1px solid var(--line); padding: 12px 0; }
+.faq summary { cursor: pointer; font-weight: 800; }
+.faq details p { margin: 8px 0 0; }
+.text-link { text-decoration: underline; text-underline-offset: 3px; }
+.consent-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+@media (max-width: 359px) { .booking-date-grid { grid-template-columns: 1fr; } }

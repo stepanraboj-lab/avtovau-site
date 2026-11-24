@@ -8,6 +8,7 @@ import json
 from pathlib import Path
 import re
 from string import Template
+from urllib.parse import urlsplit
 from xml.etree import ElementTree as ET
 from zipfile import ZIP_DEFLATED, ZipFile, ZipInfo
 
@@ -70,9 +71,10 @@ def monthly(vehicle):
     return next(rate["daily_rub"] for rate in vehicle["tariffs"] if rate["days"] == 30)
 
 
-def photo(image, css="", lazy=False):
+def photo(image, css="", lazy=False, priority=False):
     loading = ' loading="lazy"' if lazy else ""
-    return f'<img class="{css}" src="/{escape(image["src"])}" alt="{escape(image["alt"])}"{loading}>'
+    fetch = ' fetchpriority="high"' if priority else ""
+    return f'<img class="{css}" src="/{escape(image["src"])}" alt="{escape(image["alt"])}"{loading}{fetch}>'
 
 
 def catalog_photo(vehicle):
@@ -130,7 +132,7 @@ def contacts(company, variant):
         svg = (TEMPLATES / f'{link["id"]}.svg').read_text(encoding="utf-8").strip()
         external = ' target="_blank" rel="noopener"' if link["url"].startswith("https:") else ""
         items.append(
-            f'<li><a class="contact-options__link" href="{escape(link["url"])}" '
+            f'<li><a class="contact-options__link" data-contact="{link["id"]}" href="{escape(link["url"])}" '
             f'aria-label="{escape(link["accessible_label"])}"{external}>'
             f'<span class="contact-options__icon">{svg}</span><span>{escape(link["label"])}</span></a></li>'
         )
@@ -139,7 +141,7 @@ def contacts(company, variant):
         f'<div class="contact-options contact-options--{variant}">'
         '<strong class="contact-options__title">Бронирование и вопросы</strong>'
         '<ul class="contact-options__list">' + "".join(items) + "</ul>"
-        f'<a class="contact-options__number" href="{escape(phone)}">{escape(company["phone_display"])}</a></div>'
+        f'<a class="contact-options__number" data-contact="phone" href="{escape(phone)}">{escape(company["phone_display"])}</a></div>'
     )
 
 
@@ -235,48 +237,109 @@ def paragraph(value):
     return f'<p class="rental-notice">{escape(value)}</p>' if value else ""
 
 
+def faq(vehicles):
+    minimum = "; ".join(f'{v["name"]} — {days(v["minimum_days"])}' for v in vehicles)
+    deposits = "; ".join(f'{v["name"]} — {rubles(v["deposit"]["rub"])} ₽' for v in vehicles)
+    mileage = "; ".join(f'{v["name"]} — {v["daily_km"]} км' for v in vehicles)
+    items = [
+        ("Какие требования к водителю?", "Возраст от 21 года, безаварийный стаж от 3 лет. Документы и дополнительные требования зависят от автомобиля."),
+        ("Какой минимальный срок аренды?", minimum + "."),
+        ("Какой залог?", deposits + ". Условия возврата смотрите в карточке выбранной машины."),
+        ("Какой пробег включён в сутки?", mileage + ". Размер доплаты указан в условиях конкретного автомобиля."),
+        ("Можно ли запросить даты для занятой машины?", "Да, напишите владельцу о будущих датах. Доступность и стоимость подтверждает владелец."),
+    ]
+    return '<section class="wrap section faq" id="faq"><h2>Частые вопросы</h2>' + "".join(
+        f'<details><summary>{escape(question)}</summary><p>{escape(answer)}</p></details>'
+        for question, answer in items
+    ) + "</section>"
+
+
 def pages(data):
     company = data["company"]
     vehicles = data["vehicles"]
     hero = data["home_photo"]
+    analytics = data.get("analytics", {})
+    counter = analytics.get("counter_id")
+    privacy_url = analytics.get("privacy_url")
     banner = data.get("home_banner")
     cards = "".join(render(
         "card", path=escape(v["path"]), photo=photo(catalog_photo(v), lazy=True), status=status(v),
         name=escape(v["name"]), features=features(v), monthly=rubles(monthly(v)).replace(" ", "&nbsp;"),
         arrow=icon("arrow", "details-arrow"),
     ) for v in vehicles)
-    hero_image = photo(banner, "hero-photo hero-banner") if banner else photo(hero, "hero-photo")
-    home = render("home", hero_image=hero_image, cards=cards,
+    hero_image = photo(banner or hero, "hero-photo hero-banner" if banner else "hero-photo", priority=True)
+    home = render("home", hero_image=hero_image, cards=cards, faq=faq(vehicles),
                   common_equipment=inherited_equipment(data), contacts=contacts(company, "booking"))
-    output = {}
-    for v in [None, *vehicles]:
-        output[(v["path"].lstrip("/") if v else "") + "index.html"] = render(
-            "page", body=vehicle_page(v, data) if v else home, brand=escape(company["name"]),
+
+    def document(body, vehicle=None, missing=False):
+        v = vehicle
+        page_settings = {"counterId": counter, "vehicle": None}
+        if v:
+            page_settings["vehicle"] = {key: v[key] for key in ("id", "name", "year")}
+            page_settings["vehicle"]["tariffs"] = [
+                {key: rate[key] for key in ("days", "daily_rub")} for rate in v["tariffs"]
+            ]
+        return render(
+            "page", body=body, brand=escape(company["name"]),
             page_class="vehicle-page" if v else "home-page", footer_contacts=contacts(company, "footer"),
-            metadata=metadata(company, v, v["photo"] if v else hero),
-            dialog_title="Забронировать автомобиль" if v else f'Связаться с {escape(company["name"])}',
-            dialog_model=f'<p id="booking-model" class="booking-dialog__model">{escape(v["name"])}</p>' if v else "",
-            dialog_label="booking-title booking-model" if v else "booking-title",
+            metadata=('<title>Страница не найдена — АвтоВау</title>'
+                      '<meta name="description" content="Вернитесь на главную АвтоВау или откройте каталог автомобилей.">'
+                      '<meta name="robots" content="noindex">') if missing
+            else metadata(company, v, v["photo"] if v else hero),
+            dialog_title=f'Связаться с {escape(company["name"])}',
+            dialog_model=f'<p id="booking-model" class="booking-dialog__model" hidden>{escape(v["name"])}</p>' if v else "",
+            dialog_label="booking-title", booking_dates=render("booking-dates", status=status(v)) if v else "",
             viewport_fit=",viewport-fit=cover" if v else "",
             photo_viewer=render("photo-viewer", model=escape(v["name"])) if v else "",
             photo_assets=(
                 '<link rel="stylesheet" href="/assets/photo-viewer.css">\n  '
                 '<script src="/assets/photo-viewer.js" defer></script>\n  '
             ) if v else "",
+            analytics_settings='<button type="button" class="header-contact" id="analytics-settings">Настройки аналитики</button>' if counter else "",
+            analytics_dialog=render("analytics-consent", privacy_url=escape(privacy_url)) if counter else "",
+            page_settings=json.dumps(page_settings, ensure_ascii=False).replace("<", "\\u003c"),
         ).encode()
+
+    output = {"index.html": document(home)}
+    for v in vehicles:
+        output[v["path"].lstrip("/") + "index.html"] = document(vehicle_page(v, data), v)
     sitemap = ET.Element("urlset", xmlns="http://www.sitemaps.org/schemas/sitemap/0.9")
     for page in output:
         loc = f'https://{company["domain"]}/' + page.removesuffix("index.html")
         ET.SubElement(ET.SubElement(sitemap, "url"), "loc").text = loc
     ET.indent(sitemap, space="  ")
     output["sitemap.xml"] = ET.tostring(sitemap, encoding="utf-8", xml_declaration=True) + b"\n"
+    output["404.html"] = document(render("404"), missing=True)
     assets = Path(__file__).with_name("assets")
-    for name in ("fleet.css", "photo-viewer.css", "photo-viewer.js"):
+    for name in ("fleet.css", "photo-viewer.css", "photo-viewer.js", "commercial.js", "booking-rules.js"):
         output[f"assets/{name}"] = (assets / name).read_bytes()
     return output
 
 
 def validate(data, archive):
+    analytics = data.get("analytics", {})
+    counter = analytics.get("counter_id")
+    privacy = analytics.get("privacy_url")
+    if counter is not None and (type(counter) is not int or counter <= 0 or not privacy):
+        raise ValueError("Для Метрики нужны целочисленный ID и адрес утверждённой политики")
+    if privacy and not (
+        (privacy.startswith("/") and not privacy.startswith("//") and "\\" not in privacy)
+        or (urlsplit(privacy).scheme == "https" and urlsplit(privacy).hostname)
+    ):
+        raise ValueError("Для политики нужен HTTPS-адрес или локальный путь")
+    contacts = data["company"]["contacts"]
+    allowed_hosts = {"telegram": "t.me", "whatsapp": "wa.me", "avito": "www.avito.ru"}
+    if sorted(contact["id"] for contact in contacts) != sorted([*allowed_hosts, "phone"]):
+        raise ValueError("Укажите ровно по одной ссылке для Telegram, WhatsApp, Авито и телефона")
+    for contact in contacts:
+        kind, url = contact["id"], contact["url"]
+        if kind == "phone":
+            valid = re.fullmatch(r"tel:\+\d{7,15}", url)
+        else:
+            parsed = urlsplit(url)
+            valid = parsed.scheme == "https" and parsed.netloc == allowed_hosts[kind] and len(parsed.path) > 1
+        if not valid:
+            raise ValueError(f"Некорректная ссылка контакта: {kind}")
     vehicles = data["vehicles"]
     ids = set()
     for v in vehicles:
@@ -294,7 +357,8 @@ def validate(data, archive):
         if (v["status"] == "rented") != bool(until) or (until and date.fromisoformat(until).isoformat() != until):
             raise ValueError(f"{slug}: неверная дата окончания аренды")
         periods = [r["days"] for r in v["tariffs"]]
-        if not periods or min(periods) != v["minimum_days"] or 30 not in periods or len(set(periods)) != len(periods):
+        if (not periods or any(type(p) is not int or p <= 0 for p in periods)
+                or min(periods) != v["minimum_days"] or 30 not in periods or len(set(periods)) != len(periods)):
             raise ValueError(f"{slug}: проверьте периоды тарифов и минимальный срок")
         if any(type(r["daily_rub"]) is not int or r["daily_rub"] <= 0 or "{total}" not in r["total_format"] for r in v["tariffs"]):
             raise ValueError(f"{slug}: стоимость должна быть целым положительным числом, а итог — содержать {{total}}")

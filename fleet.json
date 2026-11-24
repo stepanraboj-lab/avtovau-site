@@ -610,5 +610,9 @@
   "home_banner": {
     "src": "assets/autovau-hero.webp",
     "alt": "АвтоВау — аренда автомобилей в Москве"
+  },
+  "analytics": {
+    "counter_id": null,
+    "privacy_url": null
   }
 }
