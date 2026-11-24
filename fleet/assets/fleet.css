@@ -71,6 +71,7 @@ h3 { font-size: 22px; margin-bottom: 12px; }
   border-radius: var(--radius);
   background: #29352f;
 }
+.hero-banner { object-fit: contain; }
 .section { padding-block: clamp(25px, 4vw, 50px); }
 .catalog-grid {
   display: grid;

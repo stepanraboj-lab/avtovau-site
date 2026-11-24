@@ -239,12 +239,14 @@ def pages(data):
     company = data["company"]
     vehicles = data["vehicles"]
     hero = data["home_photo"]
+    banner = data.get("home_banner")
     cards = "".join(render(
         "card", path=escape(v["path"]), photo=photo(catalog_photo(v), lazy=True), status=status(v),
         name=escape(v["name"]), features=features(v), monthly=rubles(monthly(v)).replace(" ", "&nbsp;"),
         arrow=icon("arrow", "details-arrow"),
     ) for v in vehicles)
-    home = render("home", hero_photo=photo(hero, "hero-photo"), cards=cards,
+    hero_image = photo(banner, "hero-photo hero-banner") if banner else photo(hero, "hero-photo")
+    home = render("home", hero_image=hero_image, cards=cards,
                   common_equipment=inherited_equipment(data), contacts=contacts(company, "booking"))
     output = {}
     for v in [None, *vehicles]:
@@ -297,6 +299,8 @@ def validate(data, archive):
         if any(type(r["daily_rub"]) is not int or r["daily_rub"] <= 0 or "{total}" not in r["total_format"] for r in v["tariffs"]):
             raise ValueError(f"{slug}: стоимость должна быть целым положительным числом, а итог — содержать {{total}}")
     images = [data["home_photo"], *(image for v in vehicles for image in [v["photo"], catalog_photo(v), *v["gallery"]])]
+    if "home_banner" in data:
+        images.append(data["home_banner"])
     for image in images:
         if not image["src"].startswith("assets/") or image["src"] not in archive.namelist() or not image["alt"].strip():
             raise ValueError(f'Проверьте фото и его alt: {image["src"]}')
